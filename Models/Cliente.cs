@@ -1,27 +1,35 @@
-﻿namespace GrillSystem.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace GrillSystem.Models
 {
     public class Cliente
     {
         public int Id { get; set; }
+        [MaxLength(100)]
         public string Nome { get; set; }
-        public string Cpf_Cnpj { get; set; }
+        [MaxLength(14)]
+        public string CpfCnpj { get; set; }
         public TipoCliente Tipo { get; set; }
+        [MaxLength(15)]
         public string  Telefone { get; set; }
+        [MaxLength(200)]
         public string Endereco { get; set; }
 
-        public Cliente(string nome,string cpf_cnpj, TipoCliente tipo, string telefone, string endereco)
+        public Cliente(string nome,string cpfCnpj, TipoCliente tipo, string telefone, string endereco)
         {
             Nome = nome;
-            Cpf_Cnpj = cpf_cnpj;
+            CpfCnpj = cpfCnpj;
             Tipo = tipo;
             Telefone = telefone;
             Endereco = endereco;
         }
+
+        public Cliente() { }
     }   
     
     public enum TipoCliente
     {
-        Física,
+        Fisica,
         Jurídica
     }
 }

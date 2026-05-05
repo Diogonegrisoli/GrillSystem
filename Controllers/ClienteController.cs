@@ -3,6 +3,7 @@ using GrillSystem.Models;
 using GrillSystem.Dto;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using GrillSystem.Services;
 
 namespace GrillSystem.Controllers
 {
@@ -11,10 +12,12 @@ namespace GrillSystem.Controllers
     public class ClienteController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ClienteServices _service;
 
-        public ClienteController(AppDbContext context)
+        public ClienteController(AppDbContext context, ClienteServices service)
         {
             _context = context;
+            _service = service;
         }
 
 
@@ -23,11 +26,11 @@ namespace GrillSystem.Controllers
         {
             try
             {
-                return await _context.Clientes.ToListAsync();
+                return await _service.ListAll();
             }
             catch (Exception ex)
             {
-                throw;
+                throw new Exception(ex.Message);
             }
         }
 
@@ -37,31 +40,29 @@ namespace GrillSystem.Controllers
         {
             try
             {
-                var cliente = await _context.Clientes.FirstOrDefaultAsync(x => x.Id == id);
-
-                if (cliente is null)
-                {
-                    throw new Exception($"O cliente com o {id}# não foi localizado.");
-                }
+                var cliente = await _service.GetId(id);
 
                 return cliente;
             }
             catch (Exception ex)
             {
-                throw;
+                throw new Exception(ex.Message);
             }
         }
 
         [HttpPost]
         public async Task<ActionResult<Cliente>> Create([FromBody] ClienteDto data)
         {
-            var cliente = new Cliente
-            (data.Nome, data.Cpf_Cnpj, data.Tipo, data.Endereco, data.Telefone);
+            try
+            {
+                await _service.Create(data);
 
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-
-            return Ok(cliente);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
         }
 
 
@@ -70,42 +71,29 @@ namespace GrillSystem.Controllers
         {
             try
             {
-                var cliente = await _context.Clientes.FirstOrDefaultAsync(x => x.Id == id);
-                if (cliente is null)
-                {
-                    throw new Exception($"O cliente com o {id}# não foi localizado.");
-                }
+                await _service.Update(id, data);
 
-                cliente.Cpf_Cnpj = data.Cpf_Cnpj;
-                cliente.Nome = data.Nome;
-                cliente.Endereco = data.Endereco;
-                cliente.Telefone = data.Telefone;
-                cliente.Tipo = data.Tipo;
-
-                await _context.SaveChangesAsync();
-
-                return Ok(cliente);
+                return Ok();
             }
             catch (Exception ex)
             {
-                throw;
+                throw new Exception(ex.Message);
             }
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var cliente = await _context.Clientes.FirstOrDefaultAsync(x => x.Id == id);
-
-            if (cliente is null)
+            try
             {
-                throw new Exception($"O cliente com o {id}# não foi localizado.");
+                await _service.Delete(id);
+
+                return NoContent();
             }
-
-            _context.Clientes.Remove(cliente);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
         }
     }
 }
