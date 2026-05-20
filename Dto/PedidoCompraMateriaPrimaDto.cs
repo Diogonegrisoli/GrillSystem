@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace GrillSystem.Dto
 {
-    public class PedidoCompraMateriaPrima
+    public class PedidoCompraMateriaPrimaDto
     {
         [Required(ErrorMessage = "O pedido de compra deve ser informado!")]
         public int PedidoCompraId { get; set; }

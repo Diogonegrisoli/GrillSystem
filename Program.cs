@@ -1,4 +1,5 @@
 using GrillSystem.Data;
+using GrillSystem.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<ClienteServices>();
+builder.Services.AddScoped<OrdemProducaoServices>();
 
 var app = builder.Build();
 

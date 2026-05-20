@@ -1,28 +1,23 @@
-﻿using GrillSystem.Data;
+﻿using GrillSystem.Dto;
 using GrillSystem.Models;
-using GrillSystem.Dto;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using GrillSystem.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GrillSystem.Controllers
 {
-    [Route("/cliente")]
+    [Route("/ordem-producao")]
     [ApiController]
-    public class ClienteController : ControllerBase
+    public class OrdemProducaoController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly ClienteServices _service;
-
-        public ClienteController(AppDbContext context, ClienteServices service)
+        private readonly OrdemProducaoServices _service;
+        public OrdemProducaoController(OrdemProducaoServices service)
         {
-            _context = context;
             _service = service;
         }
 
-
         [HttpGet]
-        public async Task<ICollection<Cliente>> ListAll()
+        public async Task<ICollection<OrdemProducao>> Get()
         {
             try
             {
@@ -34,15 +29,12 @@ namespace GrillSystem.Controllers
             }
         }
 
-
         [HttpGet("{id}")]
-        public async Task<Cliente> GetId(int id)
+        public async Task<OrdemProducao> GetId(int id)
         {
             try
             {
-                var cliente = await _service.GetId(id);
-
-                return cliente;
+                return await _service.GetId(id);
             }
             catch (Exception ex)
             {
@@ -51,13 +43,11 @@ namespace GrillSystem.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Cliente>> Create([FromBody] ClienteDto data)
+        public async Task<ActionResult<OrdemProducao>> Create([FromBody] OrdemProducaoDto data)
         {
             try
             {
-                await _service.Create(data);
-
-                return Ok();
+                return await _service.Create(data);
             }
             catch (Exception ex)
             {
@@ -65,15 +55,12 @@ namespace GrillSystem.Controllers
             }
         }
 
-
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] ClienteDto data)
+        public async Task<ActionResult<OrdemProducao>> Update(int id, OrdemProducaoUpdateDto data)
         {
             try
             {
-                await _service.Update(id, data);
-
-                return Ok();
+                return await _service.Update(id, data);
             }
             catch (Exception ex)
             {
@@ -82,13 +69,11 @@ namespace GrillSystem.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<ActionResult<OrdemProducao>> Delete(int id)
         {
             try
             {
-                await _service.Delete(id);
-
-                return NoContent();
+                return await _service.Delete(id);
             }
             catch (Exception ex)
             {

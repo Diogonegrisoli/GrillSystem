@@ -11,9 +11,10 @@
 
         public Fornecedor() {}
 
-        public Fornecedor(string razaoSocial, string cnpj, string email, string endereco)
+        public Fornecedor(string razaoSocial, string nomeFantasia, string cnpj, string email, string endereco)
         {
             RazaoSocial = razaoSocial;
+            NomeFantasia = nomeFantasia;
             Cnpj = cnpj;
             Email = email;
             Endereco = endereco;

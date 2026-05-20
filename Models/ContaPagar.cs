@@ -16,7 +16,7 @@ namespace GrillSystem.Models
 
         public ContaPagar(){ }
 
-        public ContaPagar(decimal valor, TipoPagamento tipoPagamento, DateOnly dataEmissao, DateOnly dataVencimento, DateOnly dataPagamento, int pedidoCompraId)
+        public ContaPagar(decimal valor, TipoPagamento tipoPagamento,DateOnly dataEmissao, DateOnly dataVencimento, DateOnly? dataPagamento, int pedidoCompraId)
         {
             Valor = valor;
             TipoPagamento = tipoPagamento;

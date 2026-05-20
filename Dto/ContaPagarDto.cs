@@ -11,6 +11,7 @@ namespace GrillSystem.Dto
         [Required(ErrorMessage = "A data da emissão deve ser informada!")]
         public DateOnly DataEmissao { get; set; }
         [Required(ErrorMessage = "A data do vencimento deve ser informada!")]
+        public DateOnly? DataPagamento { get; set; }
         public DateOnly DataVencimento { get; set; }
         [Required(ErrorMessage = "O pedido de compra deve ser informado!")]
         public int PedidoCompraId { get; set; }

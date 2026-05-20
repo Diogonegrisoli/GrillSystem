@@ -14,7 +14,7 @@
 
         public PedidoCompra() { }
 
-        public PedidoCompra(DateOnly dataPedido, DateOnly dataEntrega, decimal valorTotal, int fornecedorId, int funcionarioId)
+        public PedidoCompra(DateOnly dataPedido, DateOnly? dataEntrega, decimal valorTotal, int fornecedorId, int funcionarioId)
         {
             DataPedido = dataPedido;
             DataEntrega = dataEntrega;

@@ -12,11 +12,10 @@
         public PedidoVenda PedidoVenda { get; set; }
 
         public ContaReceber() { }
-        public ContaReceber(decimal valor, DateOnly dataVencimento, DateOnly dataRecebimento, TipoPagamentoReceber tipoPagamento, int pedidoVendaId)
+        public ContaReceber(decimal valor, DateOnly dataVencimento, TipoPagamentoReceber tipoPagamento, int pedidoVendaId)
         {
             Valor = valor;
             DataVencimento = dataVencimento;
-            DataRecebimento = dataRecebimento;
             TipoPagamento = tipoPagamento;
             StatusPagamento = StatusPagamento.Pendente;
             PedidoVendaId = pedidoVendaId;

@@ -8,7 +8,7 @@ namespace GrillSystem.Models
         public int Quantidade { get; set; }
         public StatusOrdem Status { get; set; }
         public DateOnly DataInicio { get; set; }
-        public DateOnly? DataFim { get; set; }
+        public DateOnly DataFim { get; set; }
         public TipoOrdem Tipo { get; set; }
 
         public OrdemProducao(int quantidade, DateOnly dataInicio, DateOnly dataFim, TipoOrdem tipo)

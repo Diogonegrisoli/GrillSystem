@@ -11,7 +11,7 @@ namespace GrillSystem.Dto
         public string Email { get; set; }
         [Required(ErrorMessage = "A senha é obrigatória!")]
         [MinLength(8, ErrorMessage = "A senha deve ter no mínimo 8 caracteres!")]
-        public string Senha { get; set; }
+        public string SenhaHash { get; set; }
         [Required(ErrorMessage = "O usuário deve ser informado!")]
         public int FuncionarioId { get; set; }
     }

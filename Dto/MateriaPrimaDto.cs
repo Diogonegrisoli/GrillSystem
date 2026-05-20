@@ -1,4 +1,6 @@
-﻿namespace GrillSystem.Dto
+﻿using GrillSystem.Models;
+
+namespace GrillSystem.Dto
 {
     public class MateriaPrimaDto
     {
@@ -6,6 +8,6 @@
         public string Descricao { get; set; }
         public decimal Quantidade { get; set; }
         public decimal QuantidadeMinima { get; set; }
-        public string UnidadeMedida { get; set; }
+        public UnidadeMedida UnidadeMedida { get; set; }
     }
 }

@@ -7,10 +7,34 @@ namespace GrillSystem.Dto
     {
         [Required(ErrorMessage = "A data deve ser informada!")]
         public DateOnly DataPedido { get; set; }
+
+        public DateOnly? DataEntrega { get; set; }
+
         [Range(0.01, double.MaxValue, ErrorMessage = "O valor total não pode ser menor ou igual a zero!")]
         public decimal ValorTotal { get; set; }
+
         [Required(ErrorMessage = "O fornecedor deve ser informado!")]
         public int FornecedorId { get; set; }
+
+        [Required(ErrorMessage = "O funcionário deve ser informado!")]
+        public int FuncionarioId { get; set; }
+    }
+
+    public class PedidoCompraUpdateDto
+    {
+        [Required(ErrorMessage = "A data deve ser informada!")]
+        public DateOnly DataPedido { get; set; }
+
+        public DateOnly? DataEntrega { get; set; }
+
+        public Status Status { get; set; }
+
+        [Range(0.01, double.MaxValue, ErrorMessage = "O valor total não pode ser menor ou igual a zero!")]
+        public decimal ValorTotal { get; set; }
+
+        [Required(ErrorMessage = "O fornecedor deve ser informado!")]
+        public int FornecedorId { get; set; }
+
         [Required(ErrorMessage = "O funcionário deve ser informado!")]
         public int FuncionarioId { get; set; }
     }
