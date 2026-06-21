@@ -1,4 +1,4 @@
-﻿using GrillSystem.Data;
+using GrillSystem.Data;
 using GrillSystem.Dto;
 using GrillSystem.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -16,63 +16,100 @@ namespace GrillSystem.Services
 
         public async Task<ICollection<CategoriaFinanceira>> ListAll()
         {
-            var categoria = await _context.CategoriasFinanceiras.ToListAsync();
-            if (categoria is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhuma categoria financeira!");
-            }
+                var categoria = await _context.CategoriasFinanceiras.ToListAsync();
+                if (categoria is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhuma categoria financeira!");
+                }
 
-            return categoria;
+                return categoria;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<CategoriaFinanceira> GetId(int id)
         {
-            var categoria = await _context.CategoriasFinanceiras.FirstOrDefaultAsync(x => x.Id == id);
-            if (categoria is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhuma categoria financeira!");
-            }
+                var categoria = await _context.CategoriasFinanceiras.FirstOrDefaultAsync(x => x.Id == id);
+                if (categoria is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhuma categoria financeira!");
+                }
 
-            return categoria;
+                return categoria;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<CategoriaFinanceira> Create([FromBody] CategoriaFinanceiraDto data)
         {
-            var categoria = new CategoriaFinanceira
-                (data.Nome, data.Tipo);
+            try
+            {
+                var categoria = new CategoriaFinanceira
+                    (data.Nome, data.Tipo);
 
-            _context.CategoriasFinanceiras.Add(categoria);
-            await _context.SaveChangesAsync();
+                _context.CategoriasFinanceiras.Add(categoria);
+                await _context.SaveChangesAsync();
 
-            return categoria;
+                return categoria;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<CategoriaFinanceira> Update(int id, [FromBody] CategoriaFinanceiraDto data)
         {
-            var categoria = await _context.CategoriasFinanceiras.FirstOrDefaultAsync(x => x.Id == id);
-            if (categoria is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhuma categoria financeira!");
+                var categoria = await _context.CategoriasFinanceiras.FirstOrDefaultAsync(x => x.Id == id);
+                if (categoria is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhuma categoria financeira!");
+                }
+
+                categoria.Nome = data.Nome;
+                categoria.Tipo = data.Tipo;
+
+                await _context.SaveChangesAsync();
+
+                return categoria;
             }
-
-            categoria.Nome = data.Nome;
-            categoria.Tipo = data.Tipo;
-
-            await _context.SaveChangesAsync();
-
-            return categoria;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível atualizar a categoria financeira.", ex);
+            }
         }
 
-        public async Task Delete(int id)
+        public async Task<CategoriaFinanceira> Delete(int id)
         {
-            var categoria = await _context.CategoriasFinanceiras.FirstOrDefaultAsync(x => x.Id == id);
-            if (categoria is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhuma categoria financeira!");
-            }
+                var categoria = await _context.CategoriasFinanceiras.FirstOrDefaultAsync(x => x.Id == id);
+                if (categoria is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhuma categoria financeira!");
+                }
 
-            _context.CategoriasFinanceiras.Remove(categoria);
-            await _context.SaveChangesAsync();
+                _context.CategoriasFinanceiras.Remove(categoria);
+                await _context.SaveChangesAsync();
+
+                return categoria;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível deletar a categoria financeira.", ex);
+            }
         }
     }
 }

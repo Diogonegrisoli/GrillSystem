@@ -16,63 +16,100 @@ namespace GrillSystem.Services
 
         public async Task<ICollection<PedidoCompraMateriaPrima>> ListAll()
         {
-            var pedidoMateria = await _context.PedidosCompraMateriasPrimas.ToListAsync();
-            if (pedidoMateria is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhum pedido de compra/matéria-prima!");
-            }
+                var pedidoMateria = await _context.PedidosCompraMateriasPrimas.ToListAsync();
+                if (pedidoMateria is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhum pedido de compra/matéria-prima!");
+                }
 
-            return pedidoMateria;
+                return pedidoMateria;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<PedidoCompraMateriaPrima> GetId(int id)
         {
-            var pedidoMateria = await _context.PedidosCompraMateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
-            if (pedidoMateria is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhum pedido de compra/matéria-prima!");
-            }
+                var pedidoMateria = await _context.PedidosCompraMateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
+                if (pedidoMateria is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhum pedido de compra/matéria-prima!");
+                }
 
-            return pedidoMateria;
+                return pedidoMateria;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<PedidoCompraMateriaPrima> Create([FromBody] PedidoCompraMateriaPrimaDto data)
         {
-            var pedidoMateria = new PedidoCompraMateriaPrima
-                (data.PedidoCompraId, data.MateriaPrimaId);
+            try
+            {
+                var pedidoMateria = new PedidoCompraMateriaPrima
+                    (data.PedidoCompraId, data.MateriaPrimaId);
 
-            _context.PedidosCompraMateriasPrimas.Add(pedidoMateria);
-            await _context.SaveChangesAsync();
+                _context.PedidosCompraMateriasPrimas.Add(pedidoMateria);
+                await _context.SaveChangesAsync();
 
-            return pedidoMateria;
+                return pedidoMateria;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<PedidoCompraMateriaPrima> Update(int id, [FromBody] PedidoCompraMateriaPrimaDto data)
         {
-            var pedidoMateria = await _context.PedidosCompraMateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
-            if (pedidoMateria is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhum pedido de compra/matéria-prima!");
+                var pedidoMateria = await _context.PedidosCompraMateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
+                if (pedidoMateria is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhum pedido de compra/matéria-prima!");
+                }
+
+                pedidoMateria.PedidoCompraId = data.PedidoCompraId;
+                pedidoMateria.MateriaPrimaId = data.MateriaPrimaId;
+
+                await _context.SaveChangesAsync();
+
+                return pedidoMateria;
             }
-
-            pedidoMateria.PedidoCompraId = data.PedidoCompraId;
-            pedidoMateria.MateriaPrimaId = data.MateriaPrimaId;
-
-            await _context.SaveChangesAsync();
-
-            return pedidoMateria;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível atualizar o pedido de compra/matéria-prima.", ex);
+            }
         }
 
-        public async Task Delete(int id)
+        public async Task<PedidoCompraMateriaPrima> Delete(int id)
         {
-            var pedidoMateria = await _context.PedidosCompraMateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
-            if (pedidoMateria is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhum pedido de compra/matéria-prima!");
-            }
+                var pedidoMateria = await _context.PedidosCompraMateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
+                if (pedidoMateria is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhum pedido de compra/matéria-prima!");
+                }
 
-            _context.PedidosCompraMateriasPrimas.Remove(pedidoMateria);
-            await _context.SaveChangesAsync();
+                _context.PedidosCompraMateriasPrimas.Remove(pedidoMateria);
+                await _context.SaveChangesAsync();
+
+                return pedidoMateria;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível deletar o pedido de compra/matéria-prima.", ex);
+            }
         }
     }
 }

@@ -28,7 +28,7 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
@@ -45,53 +45,74 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
         public async Task<MateriaPrima> Create([FromBody] MateriaPrimaDto data)
         {
-            var materiaPrima = new MateriaPrima
-            (data.Codigo, data.Descricao, data.Quantidade, data.QuantidadeMinima, data.UnidadeMedida);
+            try
+            {
+                var materiaPrima = new MateriaPrima
+                (data.Codigo, data.Descricao, data.Quantidade, data.QuantidadeMinima, data.UnidadeMedida);
 
-            _context.MateriasPrimas.Add(materiaPrima);
-            await _context.SaveChangesAsync();
+                _context.MateriasPrimas.Add(materiaPrima);
+                await _context.SaveChangesAsync();
 
-            return materiaPrima;
+                return materiaPrima;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<MateriaPrima> Update(int id, [FromBody] MateriaPrimaDto data)
         {
-            var materiaPrima = await _context.MateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
-            if (materiaPrima is null)
+            try
             {
-                throw new Exception($"O materia-prima com o id {id}# não foi localizado!");
+                var materiaPrima = await _context.MateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
+                if (materiaPrima is null)
+                {
+                    throw new Exception($"O materia-prima com o id {id}# não foi localizado!");
+                }
+
+                materiaPrima.Codigo = data.Codigo;
+                materiaPrima.Descricao  = data.Descricao;
+                materiaPrima.Quantidade = data.QuantidadeMinima;
+                materiaPrima.QuantidadeMinima = data.QuantidadeMinima;
+                materiaPrima.UnidadeMedida = data.UnidadeMedida;
+
+                await _context.SaveChangesAsync();
+
+
+                return materiaPrima;
             }
-
-            materiaPrima.Codigo = data.Codigo;
-            materiaPrima.Descricao  = data.Descricao;
-            materiaPrima.Quantidade = data.QuantidadeMinima;
-            materiaPrima.QuantidadeMinima = data.QuantidadeMinima;
-            materiaPrima.UnidadeMedida = data.UnidadeMedida;
-
-            await _context.SaveChangesAsync();
-
-
-            return materiaPrima;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível atualizar a matéria-prima.", ex);
+            }
         }
 
         public async Task<MateriaPrima> Delete(int id)
         {
-            var materiaPrima = await _context.MateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
-            if (materiaPrima is null)
+            try
             {
-                throw new Exception($"A materia-prima com o id {id}# não foi localizado!");
+                var materiaPrima = await _context.MateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
+                if (materiaPrima is null)
+                {
+                    throw new Exception($"A materia-prima com o id {id}# não foi localizado!");
+                }
+
+                _context.MateriasPrimas.Remove(materiaPrima);
+                await _context.SaveChangesAsync();
+
+                return materiaPrima;
             }
-
-            _context.MateriasPrimas.Remove(materiaPrima);
-            await _context.SaveChangesAsync();
-
-            return materiaPrima;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível deletar a matéria-prima.", ex);
+            }
         }
     }
 }

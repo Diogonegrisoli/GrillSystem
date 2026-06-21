@@ -13,8 +13,25 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<CategoriaFinanceiraService>();
 builder.Services.AddScoped<ClienteServices>();
+builder.Services.AddScoped<ContaPagarService>();
+builder.Services.AddScoped<ContaReceberServices>();
+builder.Services.AddScoped<FornecedorMateriaPrimaServices>();
+builder.Services.AddScoped<FornecedorService>();
+builder.Services.AddScoped<FuncionarioServices>();
+builder.Services.AddScoped<LancamentoService>();
+builder.Services.AddScoped<MateriaPrimaServices>();
+builder.Services.AddScoped<MovimentacaoEstoqueService>();
 builder.Services.AddScoped<OrdemProducaoServices>();
+builder.Services.AddScoped<PedidoCompraMateriaPrimaService>();
+builder.Services.AddScoped<PedidoCompraService>();
+builder.Services.AddScoped<PedidoVendaServices>();
+builder.Services.AddScoped<ProdutoMateriaPrimaServices>();
+builder.Services.AddScoped<ProdutoOrdemProducaoServices>();
+builder.Services.AddScoped<ProdutoPedidoVendaServices>();
+builder.Services.AddScoped<ProdutoServices>();
+builder.Services.AddScoped<UsuarioServices>();
 
 var app = builder.Build();
 

@@ -1,17 +1,25 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GrillSystem.Models
 {
+    [Table("cliente")]
     public class Cliente
     {
+        [Column("id")]
         public int Id { get; set; }
+        [Column("nome")]
         [MaxLength(100)]
         public string Nome { get; set; }
+        [Column("cpf_cnpj")]
         [MaxLength(14)]
         public string CpfCnpj { get; set; }
+        [Column("tipo")]
         public TipoCliente Tipo { get; set; }
+        [Column("telefone")]
         [MaxLength(15)]
         public string  Telefone { get; set; }
+        [Column("endereco")]
         [MaxLength(200)]
         public string Endereco { get; set; }
 
@@ -30,6 +38,6 @@ namespace GrillSystem.Models
     public enum TipoCliente
     {
         Fisica,
-        Jurídica
+        Juridica
     }
 }

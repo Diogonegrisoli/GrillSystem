@@ -28,7 +28,7 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
@@ -45,54 +45,75 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
         public async Task<MovimentacaoEstoque> Create([FromBody] MovimentacaoEstoqueDto data)
         {
-            var movimentacao = new MovimentacaoEstoque
-            (data.Tipo, data.Quantidade, data.CustoUnitario, data.Data, data.Referencia, data.MateriaPrimaId);
+            try
+            {
+                var movimentacao = new MovimentacaoEstoque
+                (data.Tipo, data.Quantidade, data.CustoUnitario, data.Data, data.Referencia, data.MateriaPrimaId);
 
-            _context.MovimentacoesEstoque.Add(movimentacao);
-            await _context.SaveChangesAsync();
+                _context.MovimentacoesEstoque.Add(movimentacao);
+                await _context.SaveChangesAsync();
 
-            return movimentacao;
+                return movimentacao;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<MovimentacaoEstoque> Update(int id, [FromBody] MovimentacaoEstoqueDto data)
         {
-            var movimentacao = await _context.MovimentacoesEstoque.FirstOrDefaultAsync(x => x.Id == id);
-            if (movimentacao is null)
+            try
             {
-                throw new Exception($"A movimentação no estoque com o id {id}# não foi localizado!");
+                var movimentacao = await _context.MovimentacoesEstoque.FirstOrDefaultAsync(x => x.Id == id);
+                if (movimentacao is null)
+                {
+                    throw new Exception($"A movimentação no estoque com o id {id}# não foi localizado!");
+                }
+
+                movimentacao.Tipo = data.Tipo;
+                movimentacao.Quantidade = data.Quantidade;
+                movimentacao.CustoUnitario = data.CustoUnitario;
+                movimentacao.Data = data.Data;
+                movimentacao.Referencia = data.Referencia;
+                movimentacao.MateriaPrimaId = data.MateriaPrimaId;
+
+                await _context.SaveChangesAsync();
+
+
+                return movimentacao;
             }
-
-            movimentacao.Tipo = data.Tipo;
-            movimentacao.Quantidade = data.Quantidade;
-            movimentacao.CustoUnitario = data.CustoUnitario;
-            movimentacao.Data = data.Data;
-            movimentacao.Referencia = data.Referencia;
-            movimentacao.MateriaPrimaId = data.MateriaPrimaId;
-
-            await _context.SaveChangesAsync();
-
-
-            return movimentacao;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível atualizar a movimentação no estoque.", ex);
+            }
         }
 
         public async Task<MovimentacaoEstoque> Delete(int id)
         {
-            var movimentacao = await _context.MovimentacoesEstoque.FirstOrDefaultAsync(x => x.Id == id);
-            if (movimentacao is null)
+            try
             {
-                throw new Exception($"A movimentação no estoque com o id {id}# não foi localizado!");
+                var movimentacao = await _context.MovimentacoesEstoque.FirstOrDefaultAsync(x => x.Id == id);
+                if (movimentacao is null)
+                {
+                    throw new Exception($"A movimentação no estoque com o id {id}# não foi localizado!");
+                }
+
+                _context.MovimentacoesEstoque.Remove(movimentacao);
+                await _context.SaveChangesAsync();
+
+                return movimentacao;
             }
-
-            _context.MovimentacoesEstoque.Remove(movimentacao);
-            await _context.SaveChangesAsync();
-
-            return movimentacao;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível deletar a movimentação no estoque.", ex);
+            }
         }
     }
 }

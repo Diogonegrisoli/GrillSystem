@@ -11,12 +11,10 @@ namespace GrillSystem.Controllers
     [ApiController]
     public class ClienteController : ControllerBase
     {
-        private readonly AppDbContext _context;
         private readonly ClienteServices _service;
 
-        public ClienteController(AppDbContext context, ClienteServices service)
+        public ClienteController(ClienteServices service)
         {
-            _context = context;
             _service = service;
         }
 
@@ -24,50 +22,32 @@ namespace GrillSystem.Controllers
         [HttpGet]
         public async Task<ICollection<Cliente>> ListAll()
         {
-            try
-            {
-                return await _service.ListAll();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message);
-            }
+            var cliente = await _service.ListAll();
+            return cliente;
         }
 
 
         [HttpGet("{id}")]
         public async Task<Cliente> GetId(int id)
         {
-            try
-            {
-                var cliente = await _service.GetId(id);
 
-                return cliente;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message);
-            }
+            var cliente = await _service.GetId(id);
+
+            return cliente;
+
         }
 
         [HttpPost]
         public async Task<ActionResult<Cliente>> Create([FromBody] ClienteDto data)
         {
-            try
-            {
-                await _service.Create(data);
+            await _service.Create(data);
 
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message);
-            }
+            return Ok();
         }
 
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] ClienteDto data)
+        public async Task<IActionResult> Update(int id, [FromBody] ClienteUpdateDto data)
         {
             try
             {

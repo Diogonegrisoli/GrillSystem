@@ -1,6 +1,7 @@
 ﻿using GrillSystem.Data;
 using GrillSystem.Dto;
 using GrillSystem.Models;
+using GrillSystem.Validacao;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,7 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
@@ -47,50 +48,72 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
         public async Task<Funcionario> Create([FromBody] FuncionarioDto data)
         {
-            var funcionario = new Funcionario
-            (data.Nome, data.Cpf);
+            try
+            {
+                var cpf = Validacoes.ValidarCpf(data.Cpf.Replace(".","").Replace("-",""));
+                var funcionario = new Funcionario
+                (data.Nome, cpf);
 
-            _context.Funcionarios.Add(funcionario);
-            await _context.SaveChangesAsync();
+                _context.Funcionarios.Add(funcionario);
+                await _context.SaveChangesAsync();
 
-            return funcionario;
+                return funcionario;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<Funcionario> Update(int id, [FromBody] FuncionarioDto data)
         {
-            var funcionario = await _context.Funcionarios.FirstOrDefaultAsync(x => x.Id == id);
-            if (funcionario is null)
+            try
             {
-                throw new Exception($"O funcionário com o id {id}# não foi localizado!");
+                var funcionario = await _context.Funcionarios.FirstOrDefaultAsync(x => x.Id == id);
+                if (funcionario is null)
+                {
+                    throw new Exception($"O funcionário com o id {id}# não foi localizado!");
+                }
+
+                funcionario.Nome = data.Nome;
+                funcionario.Cpf = data.Cpf;
+
+                await _context.SaveChangesAsync();
+
+
+                return funcionario;
             }
-
-            funcionario.Nome = data.Nome;
-            funcionario.Cpf = data.Cpf;
-
-            await _context.SaveChangesAsync();
-
-
-            return funcionario;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível atualizar o funcionário.", ex);
+            }
         }
 
         public async Task<Funcionario> Delete(int id)
         {
-            var funcionario = await _context.Funcionarios.FirstOrDefaultAsync(x => x.Id == id);
-            if (funcionario is null)
+            try
             {
-                throw new Exception($"O funcionário com o id {id}# não foi localizado!");
+                var funcionario = await _context.Funcionarios.FirstOrDefaultAsync(x => x.Id == id);
+                if (funcionario is null)
+                {
+                    throw new Exception($"O funcionário com o id {id}# não foi localizado!");
+                }
+
+                _context.Funcionarios.Remove(funcionario);
+                await _context.SaveChangesAsync();
+
+                return funcionario;
             }
-
-            _context.Funcionarios.Remove(funcionario);
-            await _context.SaveChangesAsync();
-
-            return funcionario;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível deletar o funcionário.", ex);
+            }
         }
     }
 }

@@ -29,7 +29,7 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
@@ -46,50 +46,71 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
         public async Task<ProdutoMateriaPrima> Create([FromBody] ProdutoMateriaPrimaDto data)
         {
-            var produto = new ProdutoMateriaPrima
-            (data.ProdutoId, data.MateriaPrimaId);
+            try
+            {
+                var produto = new ProdutoMateriaPrima
+                (data.ProdutoId, data.MateriaPrimaId);
 
-            _context.ProdutosMateriasPrimas.Add(produto);
-            await _context.SaveChangesAsync();
+                _context.ProdutosMateriasPrimas.Add(produto);
+                await _context.SaveChangesAsync();
 
-            return produto;
+                return produto;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<ProdutoMateriaPrima> Update(int id, [FromBody] ProdutoMateriaPrimaDto data)
         {
-            var produto = await _context.ProdutosMateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
-            if (produto is null)
+            try
             {
-                throw new Exception($"O materia-prima com o id {id}# não foi localizado!");
+                var produto = await _context.ProdutosMateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
+                if (produto is null)
+                {
+                    throw new Exception($"O materia-prima com o id {id}# não foi localizado!");
+                }
+
+                produto.ProdutoId = data.ProdutoId;
+                produto.MateriaPrimaId = data.MateriaPrimaId;
+
+                await _context.SaveChangesAsync();
+
+
+                return produto;
             }
-
-            produto.ProdutoId = data.ProdutoId;
-            produto.MateriaPrimaId = data.MateriaPrimaId;
-
-            await _context.SaveChangesAsync();
-
-
-            return produto;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível atualizar o produto/matéria-prima.", ex);
+            }
         }
 
         public async Task<ProdutoMateriaPrima> Delete(int id)
         {
-            var materiaPrima = await _context.ProdutosMateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
-            if (materiaPrima is null)
+            try
             {
-                throw new Exception($"A materia-prima com o id {id}# não foi localizado!");
+                var materiaPrima = await _context.ProdutosMateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
+                if (materiaPrima is null)
+                {
+                    throw new Exception($"A materia-prima com o id {id}# não foi localizado!");
+                }
+
+                _context.ProdutosMateriasPrimas.Remove(materiaPrima);
+                await _context.SaveChangesAsync();
+
+                return materiaPrima;
             }
-
-            _context.ProdutosMateriasPrimas.Remove(materiaPrima);
-            await _context.SaveChangesAsync();
-
-            return materiaPrima;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível deletar o produto/matéria-prima.", ex);
+            }
         }
     }
 }

@@ -28,7 +28,7 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
@@ -45,53 +45,74 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
         public async Task<PedidoVenda> Create([FromBody] PedidoVendaDto data)
         {
-            var pedido = new PedidoVenda
-            (data.DataPedido, data.DataEntrega, data.ValorTotal, data.ClienteId);
+            try
+            {
+                var pedido = new PedidoVenda
+                (data.DataPedido, data.DataEntrega, data.ValorTotal, data.ClienteId);
 
-            _context.PedidosVenda.Add(pedido);
-            await _context.SaveChangesAsync();
+                _context.PedidosVenda.Add(pedido);
+                await _context.SaveChangesAsync();
 
-            return pedido;
+                return pedido;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<PedidoVenda> Update(int id, [FromBody] PedidoVendaUpdateDto data)
         {
-            var pedido = await _context.PedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
-            if (pedido is null)
+            try
             {
-                throw new Exception($"O pedido de venda com o id {id}# não foi localizado!");
+                var pedido = await _context.PedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
+                if (pedido is null)
+                {
+                    throw new Exception($"O pedido de venda com o id {id}# não foi localizado!");
+                }
+
+                pedido.DataPedido = data.DataPedido;
+                pedido.DataEntrega = data.DataEntrega;
+                pedido.Status = data.Status;
+                pedido.ValorTotal = data.ValorTotal;
+                pedido.ClienteId = data.ClienteId;
+
+                await _context.SaveChangesAsync();
+
+
+                return pedido;
             }
-
-            pedido.DataPedido = data.DataPedido;
-            pedido.DataEntrega = data.DataEntrega;
-            pedido.Status = data.Status;
-            pedido.ValorTotal = data.ValorTotal;
-            pedido.ClienteId = data.ClienteId;
-
-            await _context.SaveChangesAsync();
-
-
-            return pedido;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível atualizar o pedido de venda.", ex);
+            }
         }
 
         public async Task<PedidoVenda> Delete(int id)
         {
-            var pedido = await _context.PedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
-            if (pedido is null)
+            try
             {
-                throw new Exception($"O pedido de venda com o id {id}# não foi localizado!");
+                var pedido = await _context.PedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
+                if (pedido is null)
+                {
+                    throw new Exception($"O pedido de venda com o id {id}# não foi localizado!");
+                }
+
+                _context.PedidosVenda.Remove(pedido);
+                await _context.SaveChangesAsync();
+
+                return pedido;
             }
-
-            _context.PedidosVenda.Remove(pedido);
-            await _context.SaveChangesAsync();
-
-            return pedido;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível deletar o pedido de venda.", ex);
+            }
         }
     }
 }

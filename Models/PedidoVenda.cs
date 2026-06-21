@@ -25,7 +25,7 @@
     public enum StatusPedido
     {
         Pendente,
-        EmProdução,
+        EmProducao,
         Enviado,
         Entregue,
         Cancelado

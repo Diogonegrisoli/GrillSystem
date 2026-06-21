@@ -30,7 +30,7 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
@@ -48,7 +48,7 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
@@ -66,7 +66,7 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
@@ -90,9 +90,9 @@ namespace GrillSystem.Services
 
                 return ordem;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw new Exception("Não foi possível atualizar a ordem de produção.", ex);
             }
         }
 
@@ -112,9 +112,9 @@ namespace GrillSystem.Services
 
                 return ordem;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw new Exception("Não foi possível deletar a ordem de produção.", ex);
             }
         }
     }

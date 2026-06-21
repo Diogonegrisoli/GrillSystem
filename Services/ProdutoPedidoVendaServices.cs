@@ -28,7 +28,7 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
@@ -45,50 +45,71 @@ namespace GrillSystem.Services
             }
             catch (Exception)
             {
-                throw new Exception("Ocorreu um erro ao executar a ação!");
+                throw;
             }
         }
 
         public async Task<ProdutoPedidoVenda> Create([FromBody] ProdutoPedidoVendaDto data)
         {
-            var produto = new ProdutoPedidoVenda
-            (data.ProdutoId, data.PedidoVendaId);
+            try
+            {
+                var produto = new ProdutoPedidoVenda
+                (data.ProdutoId, data.PedidoVendaId);
 
-            _context.ProdutosPedidosVenda.Add(produto);
-            await _context.SaveChangesAsync();
+                _context.ProdutosPedidosVenda.Add(produto);
+                await _context.SaveChangesAsync();
 
-            return produto;
+                return produto;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<ProdutoPedidoVenda> Update(int id, [FromBody] ProdutoPedidoVendaDto data)
         {
-            var produto = await _context.ProdutosPedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
-            if (produto is null)
+            try
             {
-                throw new Exception($"O produto com o id {id}# não foi localizado!");
+                var produto = await _context.ProdutosPedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
+                if (produto is null)
+                {
+                    throw new Exception($"O produto com o id {id}# não foi localizado!");
+                }
+
+                produto.ProdutoId = data.ProdutoId;
+                produto.PedidoVendaId = data.PedidoVendaId;
+
+                await _context.SaveChangesAsync();
+
+
+                return produto;
             }
-
-            produto.ProdutoId = data.ProdutoId;
-            produto.PedidoVendaId = data.PedidoVendaId;
-
-            await _context.SaveChangesAsync();
-
-
-            return produto;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível atualizar o produto/pedido de venda.", ex);
+            }
         }
 
         public async Task<ProdutoPedidoVenda> Delete(int id)
         {
-            var produto = await _context.ProdutosPedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
-            if (produto is null)
+            try
             {
-                throw new Exception($"O produto com o id {id}# não foi localizado!");
+                var produto = await _context.ProdutosPedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
+                if (produto is null)
+                {
+                    throw new Exception($"O produto com o id {id}# não foi localizado!");
+                }
+
+                _context.ProdutosPedidosVenda.Remove(produto);
+                await _context.SaveChangesAsync();
+
+                return produto;
             }
-
-            _context.ProdutosPedidosVenda.Remove(produto);
-            await _context.SaveChangesAsync();
-
-            return produto;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível deletar o produto/pedido de venda.", ex);
+            }
         }
     }
 }

@@ -16,64 +16,101 @@ namespace GrillSystem.Services
 
         public async Task<ICollection<Usuario>> ListAll()
         {
-            var usuario = await _context.Usuarios.ToListAsync();
-            if(usuario is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhum usuário!");
-            }
+                var usuario = await _context.Usuarios.ToListAsync();
+                if(usuario is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhum usuário!");
+                }
 
-            return usuario;
+                return usuario;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<Usuario> GetId(int id)
         {
-            var  usuario  = await _context.Usuarios.FirstOrDefaultAsync(x => x.Id == id);
-            if (usuario is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhum usuário!");
-            }
+                var  usuario  = await _context.Usuarios.FirstOrDefaultAsync(x => x.Id == id);
+                if (usuario is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhum usuário!");
+                }
 
-            return usuario;
+                return usuario;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<Usuario> Create([FromBody] UsuarioDto data)
         {
-            var usuario = new Usuario
-                (data.Email, data.SenhaHash, data.FuncionarioId);
+            try
+            {
+                var usuario = new Usuario
+                    (data.Email, data.SenhaHash, data.FuncionarioId);
 
-            _context.Usuarios.Add(usuario);
-            await _context.SaveChangesAsync();
+                _context.Usuarios.Add(usuario);
+                await _context.SaveChangesAsync();
 
-            return usuario;
+                return usuario;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<Usuario> Update(int id, [FromBody] UsuarioDto data)
         {
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(x => x.Id == id);
-            if (usuario is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhum usuário!");
+                var usuario = await _context.Usuarios.FirstOrDefaultAsync(x => x.Id == id);
+                if (usuario is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhum usuário!");
+                }
+
+                usuario.Email = data.Email;
+                usuario.SenhaHash = data.SenhaHash;
+                usuario.FuncionarioId = data.FuncionarioId;
+
+                await _context.SaveChangesAsync();
+
+                return usuario;
             }
-
-            usuario.Email = data.Email;
-            usuario.SenhaHash = data.SenhaHash;
-            usuario.FuncionarioId = data.FuncionarioId;
-
-            await _context.SaveChangesAsync();
-
-            return usuario;
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível atualizar o usuário.", ex);
+            }
         }
 
-        public async Task Delete(int id)
+        public async Task<Usuario> Delete(int id)
         {
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(x => x.Id == id);
-            if (usuario is null)
+            try
             {
-                throw new Exception("Não foi possível retornar nenhum usuário!");
-            }
+                var usuario = await _context.Usuarios.FirstOrDefaultAsync(x => x.Id == id);
+                if (usuario is null)
+                {
+                    throw new Exception("Não foi possível retornar nenhum usuário!");
+                }
 
-            _context.Usuarios.Remove(usuario);
-            await _context.SaveChangesAsync();
+                _context.Usuarios.Remove(usuario);
+                await _context.SaveChangesAsync();
+
+                return usuario;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Não foi possível deletar o usuário.", ex);
+            }
         }
     }
 }
