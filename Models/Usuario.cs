@@ -7,6 +7,7 @@ namespace GrillSystem.Models
         public int Id { get; set; }
         [MaxLength(150)]
         public string Email { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore]
         public string SenhaHash { get; set; }
         public int FuncionarioId { get; set; }
         public Funcionario Funcionario { get; set; }

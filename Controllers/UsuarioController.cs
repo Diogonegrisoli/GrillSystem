@@ -1,6 +1,7 @@
 ﻿using GrillSystem.Dto;
 using GrillSystem.Models;
 using GrillSystem.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -43,10 +44,16 @@ namespace GrillSystem.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         public async Task<ActionResult<Usuario>> Create([FromBody] UsuarioDto data)
         {
             try
             {
+                if (await _service.HasUsers() && User.Identity?.IsAuthenticated != true)
+                {
+                    return Unauthorized(new { mensagem = "É necessário estar autenticado para criar outros usuários." });
+                }
+
                 return await _service.Create(data);
             }
             catch (Exception ex)

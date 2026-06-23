@@ -1,6 +1,7 @@
 ﻿using GrillSystem.Data;
 using GrillSystem.Dto;
 using GrillSystem.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,9 +10,48 @@ namespace GrillSystem.Services
     public class UsuarioServices
     {
         private readonly AppDbContext _context;
-        public UsuarioServices(AppDbContext context)
+        private readonly PasswordHasher<Usuario> _passwordHasher;
+
+        public UsuarioServices(AppDbContext context, PasswordHasher<Usuario> passwordHasher)
         {
             _context = context;
+            _passwordHasher = passwordHasher;
+        }
+
+        public Task<bool> HasUsers()
+        {
+            return _context.Usuarios.AnyAsync();
+        }
+
+        public async Task<Usuario?> Authenticate(LoginDto data)
+        {
+            string email = data.Email.Trim().ToLowerInvariant();
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(x => x.Email == email);
+
+            if (usuario is null)
+            {
+                return null;
+            }
+
+            var resultado = _passwordHasher.VerifyHashedPassword(usuario, usuario.SenhaHash, data.Senha);
+            if (resultado == PasswordVerificationResult.Failed)
+            {
+                // Migra usuários antigos que ainda estejam com a senha salva em texto puro.
+                if (usuario.SenhaHash.StartsWith("AQAAAA") || usuario.SenhaHash != data.Senha)
+                {
+                    return null;
+                }
+
+                usuario.SenhaHash = _passwordHasher.HashPassword(usuario, data.Senha);
+                await _context.SaveChangesAsync();
+            }
+            else if (resultado == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                usuario.SenhaHash = _passwordHasher.HashPassword(usuario, data.Senha);
+                await _context.SaveChangesAsync();
+            }
+
+            return usuario;
         }
 
         public async Task<ICollection<Usuario>> ListAll()
@@ -54,8 +94,16 @@ namespace GrillSystem.Services
         {
             try
             {
+                string email = data.Email.Trim().ToLowerInvariant();
+                if (await _context.Usuarios.AnyAsync(x => x.Email == email))
+                {
+                    throw new Exception("Já existe um usuário com esse e-mail!");
+                }
+
                 var usuario = new Usuario
-                    (data.Email, data.SenhaHash, data.FuncionarioId);
+                    (email, string.Empty, data.FuncionarioId);
+
+                usuario.SenhaHash = _passwordHasher.HashPassword(usuario, data.Senha);
 
                 _context.Usuarios.Add(usuario);
                 await _context.SaveChangesAsync();
@@ -78,8 +126,8 @@ namespace GrillSystem.Services
                     throw new Exception("Não foi possível retornar nenhum usuário!");
                 }
 
-                usuario.Email = data.Email;
-                usuario.SenhaHash = data.SenhaHash;
+                usuario.Email = data.Email.Trim().ToLowerInvariant();
+                usuario.SenhaHash = _passwordHasher.HashPassword(usuario, data.Senha);
                 usuario.FuncionarioId = data.FuncionarioId;
 
                 await _context.SaveChangesAsync();
