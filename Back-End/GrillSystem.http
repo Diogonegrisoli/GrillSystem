@@ -1,0 +1,30 @@
+@GrillSystem_HostAddress = https://localhost:7147
+@token = COLE_O_TOKEN_AQUI
+
+### Primeiro usuário (bootstrap; será Administrador)
+POST {{GrillSystem_HostAddress}}/usuario
+Content-Type: application/json
+
+{
+  "email": "admin@grillsystem.local",
+  "senha": "Admin@123",
+  "funcionarioId": 1,
+  "perfil": "Administrador"
+}
+
+### Login
+POST {{GrillSystem_HostAddress}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@grillsystem.local",
+  "senha": "Admin@123"
+}
+
+### Usuário autenticado
+GET {{GrillSystem_HostAddress}}/auth/me
+Authorization: Bearer {{token}}
+
+### Lista de usuários (Administrador)
+GET {{GrillSystem_HostAddress}}/usuario
+Authorization: Bearer {{token}}
