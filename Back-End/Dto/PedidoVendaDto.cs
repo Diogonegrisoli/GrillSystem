@@ -1,4 +1,4 @@
-﻿using GrillSystem.Models;
+using GrillSystem.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace GrillSystem.Dto
@@ -9,9 +9,8 @@ namespace GrillSystem.Dto
         public DateOnly DataPedido { get; set; }
         [Required(ErrorMessage = "É necessário inoformar a data da entrega!")]
         public DateOnly DataEntrega { get; set; }
-        [Required(ErrorMessage = "É necessário informar o valor total!")]
-        public decimal ValorTotal { get; set; }
         [Required(ErrorMessage = "É necessário informar o cliente!")]
+        [Range(1, int.MaxValue)]
         public int ClienteId { get; set; }
     }
 
@@ -22,10 +21,11 @@ namespace GrillSystem.Dto
         public DateOnly DataPedido { get; set; }
         [Required(ErrorMessage = "É necessário inoformar a data da entrega!")]
         public DateOnly DataEntrega { get; set; }
-        [Required(ErrorMessage = "É necessário informar o valor total!")]
-        public StatusPedido Status { get; set; }
-        public decimal ValorTotal { get; set; }
+        [Required(ErrorMessage = "O status do pedido deve ser informado!")]
+        [EnumDataType(typeof(StatusPedido))]
+        public StatusPedido? Status { get; set; }
         [Required(ErrorMessage = "É necessário informar o cliente!")]
+        [Range(1, int.MaxValue)]
         public int ClienteId { get; set; }
     }
 }

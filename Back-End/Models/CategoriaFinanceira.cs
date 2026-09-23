@@ -1,12 +1,12 @@
-﻿namespace GrillSystem.Models
+namespace GrillSystem.Models
 {
     public class CategoriaFinanceira
     {
         public int Id { get; set; }
-        public string Nome { get; set; }
+        public string Nome { get; set; } = string.Empty;
         public TipoCategoria Tipo { get; set; }
 
-        public CategoriaFinanceira(){ }
+        public CategoriaFinanceira() { }
 
         public CategoriaFinanceira(string nome, TipoCategoria tipo)
         {

@@ -1,4 +1,4 @@
-﻿using GrillSystem.Dto;
+using GrillSystem.Dto;
 using GrillSystem.Models;
 using GrillSystem.Services;
 using Microsoft.AspNetCore.Http;
@@ -17,15 +17,17 @@ namespace GrillSystem.Controllers
         }
 
         [HttpGet]
-        public async Task<ICollection<ContaReceber>> Get()
+        public async Task<ResultadoPaginadoDto<ContaReceber>> Get(
+            [FromQuery] PaginacaoDto paginacao,
+            CancellationToken cancellationToken)
         {
             try
             {
-                return await _service.ListAll();
+                return await _service.ListAll(paginacao, cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.Message);
+                throw;
             }
         }
 
@@ -36,16 +38,16 @@ namespace GrillSystem.Controllers
             {
                 return await _service.GetId(id);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.Message);
+                throw;
             }
         }
 
         [HttpPost]
         public async Task<ActionResult<ContaReceber>> Create([FromBody] ContaReceberDto data)
-        {         
-                return await _service.Create(data);   
+        {
+            return await _service.Create(data);
         }
 
         [HttpPut("{id}")]
@@ -55,9 +57,9 @@ namespace GrillSystem.Controllers
             {
                 return await _service.Update(id, data);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.Message);
+                throw;
             }
         }
 
@@ -69,9 +71,9 @@ namespace GrillSystem.Controllers
             {
                 return await _service.Delete(id);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.Message);
+                throw;
             }
         }
     }

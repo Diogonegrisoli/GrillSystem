@@ -1,118 +1,204 @@
-﻿using GrillSystem.Data;
+using GrillSystem.Data;
 using GrillSystem.Dto;
+using GrillSystem.Infrastructure;
 using GrillSystem.Models;
-using Microsoft.AspNetCore.Mvc;
+using GrillSystem.Validacao;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
-namespace GrillSystem.Services
+namespace GrillSystem.Services;
+
+public class PedidoVendaServices
 {
-    public class PedidoVendaServices
+    private readonly AppDbContext _context;
+
+    public PedidoVendaServices(AppDbContext context) => _context = context;
+
+    public Task<ResultadoPaginadoDto<PedidoVenda>> ListAll(
+        PaginacaoDto paginacao,
+        CancellationToken cancellationToken = default) =>
+        _context.PedidosVenda
+            .AsNoTracking()
+            .OrderByDescending(x => x.DataPedido)
+            .ThenByDescending(x => x.Id)
+            .PaginarAsync(paginacao, cancellationToken);
+
+    public async Task<PedidoVenda> GetId(
+        int id,
+        CancellationToken cancellationToken = default) =>
+        await _context.PedidosVenda
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+        ?? throw new KeyNotFoundException($"O pedido de venda com o id {id} não foi localizado.");
+
+    public async Task<PedidoVenda> Create(
+        PedidoVendaDto data,
+        CancellationToken cancellationToken = default)
     {
-        private readonly AppDbContext _context;
-        public PedidoVendaServices(AppDbContext context)
+        ValidarDatas(data.DataPedido, data.DataEntrega);
+        if (!await _context.Clientes.AnyAsync(x => x.Id == data.ClienteId, cancellationToken))
         {
-            _context = context;
+            throw new KeyNotFoundException($"O cliente com o id {data.ClienteId} não foi localizado.");
         }
 
-        public async Task<ICollection<PedidoVenda>> ListAll()
-        {
-            try
-            {
-                var pedido = await _context.PedidosVenda.ToListAsync();
-                if (pedido is null)
-                {
-                    throw new Exception("Não foi possível retornar nenhum pedido de venda!");
-                }
+        var pedido = new PedidoVenda(data.DataPedido, data.DataEntrega, 0, data.ClienteId);
+        _context.PedidosVenda.Add(pedido);
+        await _context.SaveChangesAsync(cancellationToken);
+        return pedido;
+    }
 
-                return pedido;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+    public async Task<PedidoVenda> Update(
+        int id,
+        PedidoVendaUpdateDto data,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var pedido = await _context.PedidosVenda
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"O pedido de venda com o id {id} não foi localizado.");
+
+        StatusPedido novoStatus = data.Status
+            ?? throw new ValidationException("O status do pedido deve ser informado.");
+        ValidarTransicao(pedido.Status, novoStatus);
+        ValidarDatas(data.DataPedido, data.DataEntrega);
+        if (pedido.Status == StatusPedido.Pendente && novoStatus == StatusPedido.EmProducao)
+        {
+            await ValidarItensParaProducao(id, cancellationToken);
         }
 
-        public async Task<PedidoVenda> GetId(int id)
+        if (pedido.Status == StatusPedido.Pendente)
         {
-            try
+            if (!await _context.Clientes.AnyAsync(x => x.Id == data.ClienteId, cancellationToken))
             {
-                var pedido = await _context.PedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
-                if (pedido is null)
-                {
-                    throw new Exception($"O pedido de venda com o id {id}# não foi localizado!");
-                }
-                return pedido;
+                throw new KeyNotFoundException($"O cliente com o id {data.ClienteId} não foi localizado.");
             }
-            catch (Exception)
-            {
-                throw;
-            }
+            pedido.DataPedido = data.DataPedido;
+            pedido.DataEntrega = data.DataEntrega;
+            pedido.ClienteId = data.ClienteId;
+        }
+        else if (pedido.DataPedido != data.DataPedido ||
+                 pedido.DataEntrega != data.DataEntrega ||
+                 pedido.ClienteId != data.ClienteId)
+        {
+            throw new RegraNegocioException(
+                "Dados cadastrais do pedido só podem ser alterados enquanto ele estiver pendente.");
         }
 
-        public async Task<PedidoVenda> Create([FromBody] PedidoVendaDto data)
+        if (pedido.Status != StatusPedido.Enviado && novoStatus == StatusPedido.Enviado)
         {
-            try
+            int pedidoReservado = await _context.PedidosVenda
+                .Where(x => x.Id == id && x.Status == StatusPedido.EmProducao)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(x => x.Status, StatusPedido.Enviado),
+                    cancellationToken);
+            if (pedidoReservado == 0)
             {
-                var pedido = new PedidoVenda
-                (data.DataPedido, data.DataEntrega, data.ValorTotal, data.ClienteId);
-
-                _context.PedidosVenda.Add(pedido);
-                await _context.SaveChangesAsync();
-
-                return pedido;
+                throw new ConflitoNegocioException(
+                    "O pedido já foi enviado ou alterado por outra operação.");
             }
-            catch (Exception)
-            {
-                throw;
-            }
+            await BaixarEstoqueProdutos(id, cancellationToken);
         }
 
-        public async Task<PedidoVenda> Update(int id, [FromBody] PedidoVendaUpdateDto data)
+        pedido.Status = novoStatus;
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return pedido;
+    }
+
+    public async Task<PedidoVenda> Delete(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var pedido = await _context.PedidosVenda
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"O pedido de venda com o id {id} não foi localizado.");
+        if (pedido.Status != StatusPedido.Pendente)
         {
-            try
-            {
-                var pedido = await _context.PedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
-                if (pedido is null)
-                {
-                    throw new Exception($"O pedido de venda com o id {id}# não foi localizado!");
-                }
-
-                pedido.DataPedido = data.DataPedido;
-                pedido.DataEntrega = data.DataEntrega;
-                pedido.Status = data.Status;
-                pedido.ValorTotal = data.ValorTotal;
-                pedido.ClienteId = data.ClienteId;
-
-                await _context.SaveChangesAsync();
-
-
-                return pedido;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível atualizar o pedido de venda.", ex);
-            }
+            throw new RegraNegocioException("Somente pedidos pendentes podem ser excluídos.");
+        }
+        if (await _context.ContasReceber.AnyAsync(x => x.PedidoVendaId == id, cancellationToken))
+        {
+            throw new ConflitoNegocioException("O pedido possui uma conta a receber e não pode ser excluído.");
         }
 
-        public async Task<PedidoVenda> Delete(int id)
+        _context.PedidosVenda.Remove(pedido);
+        await _context.SaveChangesAsync(cancellationToken);
+        return pedido;
+    }
+
+    private static void ValidarDatas(DateOnly dataPedido, DateOnly dataEntrega)
+    {
+        Validacoes.DataNaoFutura(dataPedido, "A data do pedido");
+        Validacoes.PeriodoValido(dataPedido, dataEntrega, "data do pedido", "data de entrega");
+    }
+
+    private static void ValidarTransicao(StatusPedido atual, StatusPedido novo)
+    {
+        if (atual == novo)
         {
-            try
-            {
-                var pedido = await _context.PedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
-                if (pedido is null)
-                {
-                    throw new Exception($"O pedido de venda com o id {id}# não foi localizado!");
-                }
+            return;
+        }
 
-                _context.PedidosVenda.Remove(pedido);
-                await _context.SaveChangesAsync();
+        bool permitida = (atual, novo) switch
+        {
+            (StatusPedido.Pendente, StatusPedido.EmProducao) => true,
+            (StatusPedido.Pendente, StatusPedido.Cancelado) => true,
+            (StatusPedido.EmProducao, StatusPedido.Enviado) => true,
+            (StatusPedido.EmProducao, StatusPedido.Cancelado) => true,
+            (StatusPedido.Enviado, StatusPedido.Entregue) => true,
+            _ => false
+        };
 
-                return pedido;
-            }
-            catch (Exception ex)
+        if (!permitida)
+        {
+            throw new RegraNegocioException($"Transição de {atual} para {novo} não permitida.");
+        }
+    }
+
+    private async Task BaixarEstoqueProdutos(int pedidoId, CancellationToken cancellationToken)
+    {
+        var itens = await _context.ProdutosPedidosVenda
+            .AsNoTracking()
+            .Where(x => x.PedidoVendaId == pedidoId)
+            .OrderBy(x => x.ProdutoId)
+            .ToListAsync(cancellationToken);
+        if (itens.Count == 0)
+        {
+            throw new RegraNegocioException("O pedido não possui produtos.");
+        }
+        if (itens.Any(x => x.Quantidade <= 0))
+        {
+            throw new RegraNegocioException(
+                "O pedido possui produto sem quantidade válida. Revise os itens antes do envio.");
+        }
+
+        foreach (var item in itens)
+        {
+            int atualizados = await _context.Produtos
+                .Where(x => x.Id == item.ProdutoId && x.Quantidade >= item.Quantidade)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(
+                        x => x.Quantidade,
+                        x => x.Quantidade - item.Quantidade),
+                    cancellationToken);
+            if (atualizados == 0)
             {
-                throw new Exception("Não foi possível deletar o pedido de venda.", ex);
+                throw new RegraNegocioException(
+                    $"Estoque insuficiente para enviar o produto {item.ProdutoId}.");
             }
+        }
+    }
+
+    private async Task ValidarItensParaProducao(
+        int pedidoId,
+        CancellationToken cancellationToken)
+    {
+        bool possuiItens = await _context.ProdutosPedidosVenda
+            .AnyAsync(x => x.PedidoVendaId == pedidoId, cancellationToken);
+        if (!possuiItens)
+        {
+            throw new RegraNegocioException(
+                "Inclua ao menos um produto antes de enviar o pedido para produção.");
         }
     }
 }

@@ -17,8 +17,10 @@ public class UsuarioController : ControllerBase
 
     [Authorize(Policy = Politicas.GerenciarUsuarios)]
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyCollection<UsuarioResponseDto>>> Get() =>
-        Ok(await _service.ListAll());
+    public async Task<ActionResult<ResultadoPaginadoDto<UsuarioResponseDto>>> Get(
+        [FromQuery] PaginacaoDto paginacao,
+        CancellationToken cancellationToken) =>
+        Ok(await _service.ListAll(paginacao, cancellationToken));
 
     [Authorize(Policy = Politicas.GerenciarUsuarios)]
     [HttpGet("{id:int}")]

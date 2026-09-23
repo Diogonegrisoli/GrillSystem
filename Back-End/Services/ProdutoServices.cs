@@ -1,118 +1,80 @@
-﻿using GrillSystem.Data;
+using GrillSystem.Data;
 using GrillSystem.Dto;
+using GrillSystem.Infrastructure;
 using GrillSystem.Models;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrillSystem.Services
+namespace GrillSystem.Services;
+
+public class ProdutoServices
 {
-    public class ProdutoServices
+    private readonly AppDbContext _context;
+
+    public ProdutoServices(AppDbContext context) => _context = context;
+
+    public Task<ResultadoPaginadoDto<Produto>> ListAll(
+        PaginacaoDto paginacao,
+        CancellationToken cancellationToken = default) =>
+        _context.Produtos.AsNoTracking().OrderBy(x => x.Codigo)
+            .PaginarAsync(paginacao, cancellationToken);
+
+    public async Task<Produto> GetId(int id, CancellationToken cancellationToken = default) =>
+        await _context.Produtos.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+        ?? throw new KeyNotFoundException($"O produto com o id {id} não foi localizado.");
+
+    public async Task<Produto> Create(ProdutoDto data, CancellationToken cancellationToken = default)
     {
-        private readonly AppDbContext _context;
-        public ProdutoServices(AppDbContext context)
+        string codigo = data.Codigo.Trim();
+        await ValidarCodigo(codigo, null, cancellationToken);
+        var produto = new Produto(codigo, data.Descricao.Trim(), data.Preco, 0);
+        _context.Produtos.Add(produto);
+        await _context.SaveChangesAsync(cancellationToken);
+        return produto;
+    }
+
+    public async Task<Produto> Update(
+        int id,
+        ProdutoDto data,
+        CancellationToken cancellationToken = default)
+    {
+        var produto = await _context.Produtos.FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"O produto com o id {id} não foi localizado.");
+        string codigo = data.Codigo.Trim();
+        await ValidarCodigo(codigo, id, cancellationToken);
+        produto.Codigo = codigo;
+        produto.Descricao = data.Descricao.Trim();
+        produto.Preco = data.Preco;
+        await _context.SaveChangesAsync(cancellationToken);
+        return produto;
+    }
+
+    public async Task<Produto> Delete(int id, CancellationToken cancellationToken = default)
+    {
+        var produto = await _context.Produtos.FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"O produto com o id {id} não foi localizado.");
+        bool utilizado = await _context.ProdutosMateriasPrimas.AnyAsync(x => x.ProdutoId == id, cancellationToken)
+            || await _context.ProdutosPedidosVenda.AnyAsync(x => x.ProdutoId == id, cancellationToken)
+            || await _context.ProdutosOrdensProducao.AnyAsync(x => x.ProdutoId == id, cancellationToken);
+        if (utilizado)
         {
-            _context = context;
+            throw new ConflitoNegocioException("O produto possui histórico e não pode ser excluído.");
         }
+        _context.Produtos.Remove(produto);
+        await _context.SaveChangesAsync(cancellationToken);
+        return produto;
+    }
 
-
-        public async Task<ICollection<Produto>> ListAll()
+    private async Task ValidarCodigo(
+        string codigo,
+        int? ignorarId,
+        CancellationToken cancellationToken)
+    {
+        if (await _context.Produtos.AnyAsync(
+                x => x.Codigo == codigo && (!ignorarId.HasValue || x.Id != ignorarId),
+                cancellationToken))
         {
-            try
-            {
-                var produto = await _context.Produtos.ToListAsync();
-                if (produto is null)
-                {
-                    throw new Exception("Não foi possível retornar nenhum produto!");
-                }
-
-                return produto;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<Produto> GetId(int id)
-        {
-            try
-            {
-                var produto = await _context.Produtos.FirstOrDefaultAsync(x => x.Id == id);
-                if (produto is null)
-                {
-                    throw new Exception($"O produto com o id {id}# não foi localizado!");
-                }
-                return produto;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<Produto> Create([FromBody] ProdutoDto data)
-        {
-            try
-            {
-                var produto = new Produto
-                (data.Codigo, data.Descricao, data.Preco, data.Quantidade);
-
-                _context.Produtos.Add(produto);
-                await _context.SaveChangesAsync();
-
-                return produto;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<Produto> Update(int id, [FromBody] ProdutoDto data)
-        {
-            try
-            {
-                var produto = await _context.Produtos.FirstOrDefaultAsync(x => x.Id == id);
-                if (produto is null)
-                {
-                    throw new Exception($"O produto com o id {id}# não foi localizado!");
-                }
-
-                produto.Codigo = data.Codigo;
-                produto.Descricao = data.Descricao;
-                produto.Preco = data.Preco;
-                produto.Quantidade = data.Quantidade;
-
-                await _context.SaveChangesAsync();
-
-
-                return produto;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível atualizar o produto.", ex);
-            }
-        }
-
-        public async Task<Produto> Delete(int id)
-        {
-            try
-            {
-                var produto = await _context.Produtos.FirstOrDefaultAsync(x => x.Id == id);
-                if (produto is null)
-                {
-                    throw new Exception($"O produto com o id {id}# não foi localizado!");
-                }
-
-                _context.Produtos.Remove(produto);
-                await _context.SaveChangesAsync();
-
-                return produto;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível deletar o produto.", ex);
-            }
+            throw new ConflitoNegocioException("O código do produto já está cadastrado.");
         }
     }
 }

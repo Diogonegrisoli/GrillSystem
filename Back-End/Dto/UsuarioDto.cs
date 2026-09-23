@@ -18,7 +18,7 @@ namespace GrillSystem.Dto
         public int FuncionarioId { get; set; }
 
         [Required(ErrorMessage = "O perfil é obrigatório!")]
-        public string Perfil { get; set; } = Perfis.Operador;
+        public string Perfil { get; set; } = Perfis.Vendedor;
     }
 
     public class UsuarioUpdateDto
@@ -32,7 +32,7 @@ namespace GrillSystem.Dto
         public string? Senha { get; set; }
 
         [Required(ErrorMessage = "O perfil é obrigatório!")]
-        public string Perfil { get; set; } = Perfis.Operador;
+        public string Perfil { get; set; } = Perfis.Vendedor;
 
         public bool Bloqueado { get; set; }
     }

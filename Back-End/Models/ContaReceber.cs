@@ -1,4 +1,4 @@
-﻿namespace GrillSystem.Models
+namespace GrillSystem.Models
 {
     public class ContaReceber
     {
@@ -6,7 +6,7 @@
         public decimal Valor { get; set; }
         public DateOnly DataVencimento { get; set; }
         private DateOnly? dataRecebimento;
-        public DateOnly? DataRecebimento 
+        public DateOnly? DataRecebimento
         {
             get { return dataRecebimento; }
             set
@@ -22,7 +22,7 @@
         public TipoPagamentoReceber TipoPagamento { get; set; }
         public StatusPagamento StatusPagamento { get; set; }
         public int PedidoVendaId { get; set; }
-        public PedidoVenda PedidoVenda { get; set; }
+        public PedidoVenda PedidoVenda { get; set; } = null!;
 
         public ContaReceber() { }
         public ContaReceber(decimal valor, DateOnly dataVencimento, StatusPagamento statusPagamento, DateOnly? dataRecebimento, TipoPagamentoReceber tipoPagamento, int pedidoVendaId)

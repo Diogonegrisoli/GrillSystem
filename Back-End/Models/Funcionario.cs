@@ -1,13 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace GrillSystem.Models
 {
     public class Funcionario
     {
         public int Id { get; set; }
-        public string Nome { get; set; }
-        public string Cpf { get; set; }
-        public StatusFuncionario Status {  get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Cpf { get; set; } = string.Empty;
+        public StatusFuncionario Status { get; set; }
 
         public Funcionario() { }
 

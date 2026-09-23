@@ -1,118 +1,91 @@
-﻿using GrillSystem.Data;
+using GrillSystem.Data;
 using GrillSystem.Dto;
+using GrillSystem.Infrastructure;
 using GrillSystem.Models;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrillSystem.Services
+namespace GrillSystem.Services;
+
+public class MateriaPrimaServices
 {
-    public class MateriaPrimaServices
+    private readonly AppDbContext _context;
+
+    public MateriaPrimaServices(AppDbContext context) => _context = context;
+
+    public Task<ResultadoPaginadoDto<MateriaPrima>> ListAll(
+        PaginacaoDto paginacao,
+        CancellationToken cancellationToken = default) =>
+        _context.MateriasPrimas.AsNoTracking().OrderBy(x => x.Codigo)
+            .PaginarAsync(paginacao, cancellationToken);
+
+    public async Task<MateriaPrima> GetId(int id, CancellationToken cancellationToken = default) =>
+        await _context.MateriasPrimas.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+        ?? throw new KeyNotFoundException($"A matéria-prima com o id {id} não foi localizada.");
+
+    public async Task<MateriaPrima> Create(
+        MateriaPrimaDto data,
+        CancellationToken cancellationToken = default)
     {
-        private readonly AppDbContext _context;
-        public MateriaPrimaServices(AppDbContext context)
+        string codigo = data.Codigo.Trim();
+        await ValidarCodigo(codigo, null, cancellationToken);
+        var materiaPrima = new MateriaPrima(
+            codigo,
+            data.Descricao.Trim(),
+            0,
+            data.QuantidadeMinima,
+            data.UnidadeMedida);
+        _context.MateriasPrimas.Add(materiaPrima);
+        await _context.SaveChangesAsync(cancellationToken);
+        return materiaPrima;
+    }
+
+    public async Task<MateriaPrima> Update(
+        int id,
+        MateriaPrimaDto data,
+        CancellationToken cancellationToken = default)
+    {
+        var materiaPrima = await _context.MateriasPrimas
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"A matéria-prima com o id {id} não foi localizada.");
+        string codigo = data.Codigo.Trim();
+        await ValidarCodigo(codigo, id, cancellationToken);
+        materiaPrima.Codigo = codigo;
+        materiaPrima.Descricao = data.Descricao.Trim();
+        materiaPrima.QuantidadeMinima = data.QuantidadeMinima;
+        materiaPrima.UnidadeMedida = data.UnidadeMedida;
+        await _context.SaveChangesAsync(cancellationToken);
+        return materiaPrima;
+    }
+
+    public async Task<MateriaPrima> Delete(int id, CancellationToken cancellationToken = default)
+    {
+        var materiaPrima = await _context.MateriasPrimas
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"A matéria-prima com o id {id} não foi localizada.");
+        bool utilizada = await _context.ProdutosMateriasPrimas.AnyAsync(x => x.MateriaPrimaId == id, cancellationToken)
+            || await _context.MovimentacoesEstoque.AnyAsync(x => x.MateriaPrimaId == id, cancellationToken)
+            || await _context.PedidosCompraMateriasPrimas.AnyAsync(x => x.MateriaPrimaId == id, cancellationToken);
+        if (utilizada)
         {
-            _context = context;
+            throw new ConflitoNegocioException(
+                "A matéria-prima possui histórico ou composição e não pode ser excluída.");
         }
+        _context.MateriasPrimas.Remove(materiaPrima);
+        await _context.SaveChangesAsync(cancellationToken);
+        return materiaPrima;
+    }
 
-        public async Task<ICollection<MateriaPrima>> ListAll()
+    private async Task ValidarCodigo(
+        string codigo,
+        int? ignorarId,
+        CancellationToken cancellationToken)
+    {
+        if (await _context.MateriasPrimas.AnyAsync(
+                x => x.Codigo == codigo && (!ignorarId.HasValue || x.Id != ignorarId),
+                cancellationToken))
         {
-            try
-            {
-                var materiaPrima = await _context.MateriasPrimas.ToListAsync();
-                if (materiaPrima is null)
-                {
-                    throw new Exception("Não foi possível retornar nenhuma materia-prima!");
-                }
-
-                return materiaPrima;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<MateriaPrima> GetId(int id)
-        {
-            try
-            {
-                var materiaPrima = await _context.MateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
-                if (materiaPrima is null)
-                {
-                    throw new Exception($"A materia-prima com o id {id}# não foi localizado!");
-                }
-                return materiaPrima;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<MateriaPrima> Create([FromBody] MateriaPrimaDto data)
-        {
-            try
-            {
-                var materiaPrima = new MateriaPrima
-                (data.Codigo, data.Descricao, data.Quantidade, data.QuantidadeMinima, data.UnidadeMedida);
-
-                _context.MateriasPrimas.Add(materiaPrima);
-                await _context.SaveChangesAsync();
-
-                return materiaPrima;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<MateriaPrima> Update(int id, [FromBody] MateriaPrimaDto data)
-        {
-            try
-            {
-                var materiaPrima = await _context.MateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
-                if (materiaPrima is null)
-                {
-                    throw new Exception($"O materia-prima com o id {id}# não foi localizado!");
-                }
-
-                materiaPrima.Codigo = data.Codigo;
-                materiaPrima.Descricao  = data.Descricao;
-                materiaPrima.Quantidade = data.Quantidade;
-                materiaPrima.QuantidadeMinima = data.QuantidadeMinima;
-                materiaPrima.UnidadeMedida = data.UnidadeMedida;
-
-                await _context.SaveChangesAsync();
-
-
-                return materiaPrima;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível atualizar a matéria-prima.", ex);
-            }
-        }
-
-        public async Task<MateriaPrima> Delete(int id)
-        {
-            try
-            {
-                var materiaPrima = await _context.MateriasPrimas.FirstOrDefaultAsync(x => x.Id == id);
-                if (materiaPrima is null)
-                {
-                    throw new Exception($"A materia-prima com o id {id}# não foi localizado!");
-                }
-
-                _context.MateriasPrimas.Remove(materiaPrima);
-                await _context.SaveChangesAsync();
-
-                return materiaPrima;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível deletar a matéria-prima.", ex);
-            }
+            throw new ConflitoNegocioException("O código da matéria-prima já está cadastrado.");
         }
     }
 }

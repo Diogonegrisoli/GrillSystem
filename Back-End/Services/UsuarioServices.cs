@@ -48,13 +48,19 @@ public class UsuarioServices
         return resultado.Succeeded ? usuario : null;
     }
 
-    public async Task<IReadOnlyCollection<UsuarioResponseDto>> ListAll()
+    public async Task<ResultadoPaginadoDto<UsuarioResponseDto>> ListAll(
+        PaginacaoDto paginacao,
+        CancellationToken cancellationToken = default)
     {
-        var usuarios = await _userManager.Users
+        var consulta = _userManager.Users
             .AsNoTracking()
             .Include(x => x.Funcionario)
-            .OrderBy(x => x.Email)
-            .ToListAsync();
+            .OrderBy(x => x.Email);
+        int totalItens = await consulta.CountAsync(cancellationToken);
+        var usuarios = await consulta
+            .Skip((paginacao.Pagina - 1) * paginacao.TamanhoPagina)
+            .Take(paginacao.TamanhoPagina)
+            .ToListAsync(cancellationToken);
 
         var response = new List<UsuarioResponseDto>(usuarios.Count);
         foreach (var usuario in usuarios)
@@ -62,7 +68,12 @@ public class UsuarioServices
             response.Add(await ToResponse(usuario));
         }
 
-        return response;
+        return new ResultadoPaginadoDto<UsuarioResponseDto>(
+            response,
+            paginacao.Pagina,
+            paginacao.TamanhoPagina,
+            totalItens,
+            (int)Math.Ceiling(totalItens / (double)paginacao.TamanhoPagina));
     }
 
     public async Task<UsuarioResponseDto> GetId(int id)

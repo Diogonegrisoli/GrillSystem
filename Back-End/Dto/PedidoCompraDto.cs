@@ -1,4 +1,4 @@
-﻿using GrillSystem.Models;
+using GrillSystem.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace GrillSystem.Dto
@@ -10,13 +10,12 @@ namespace GrillSystem.Dto
 
         public DateOnly? DataEntrega { get; set; }
 
-        [Range(0.01, double.MaxValue, ErrorMessage = "O valor total não pode ser menor ou igual a zero!")]
-        public decimal ValorTotal { get; set; }
-
         [Required(ErrorMessage = "O fornecedor deve ser informado!")]
+        [Range(1, int.MaxValue)]
         public int FornecedorId { get; set; }
 
         [Required(ErrorMessage = "O funcionário deve ser informado!")]
+        [Range(1, int.MaxValue)]
         public int FuncionarioId { get; set; }
     }
 
@@ -27,15 +26,16 @@ namespace GrillSystem.Dto
 
         public DateOnly? DataEntrega { get; set; }
 
-        public Status Status { get; set; }
-
-        [Range(0.01, double.MaxValue, ErrorMessage = "O valor total não pode ser menor ou igual a zero!")]
-        public decimal ValorTotal { get; set; }
+        [Required(ErrorMessage = "O status do pedido deve ser informado!")]
+        [EnumDataType(typeof(Status))]
+        public Status? Status { get; set; }
 
         [Required(ErrorMessage = "O fornecedor deve ser informado!")]
+        [Range(1, int.MaxValue)]
         public int FornecedorId { get; set; }
 
         [Required(ErrorMessage = "O funcionário deve ser informado!")]
+        [Range(1, int.MaxValue)]
         public int FuncionarioId { get; set; }
     }
 }

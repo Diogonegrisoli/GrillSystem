@@ -6,12 +6,77 @@ public static class Validacoes
 {
     public static DateTime DataEmissao(DateTime dataInserida)
     {
+        if (dataInserida == default)
+        {
+            throw new ValidationException("A data de emissão deve ser informada.");
+        }
+
         if (dataInserida.Date > DateTime.Today)
         {
             throw new ValidationException("A data não pode ser maior que a data atual!");
         }
 
         return dataInserida;
+    }
+
+    public static DateOnly DataNaoFutura(DateOnly data, string campo)
+    {
+        DataObrigatoria(data, campo);
+        if (data > DateOnly.FromDateTime(DateTime.Today))
+        {
+            throw new ValidationException($"{campo} não pode ser futura.");
+        }
+
+        return data;
+    }
+
+    public static DateOnly DataObrigatoria(DateOnly data, string campo)
+    {
+        if (data == default)
+        {
+            throw new ValidationException($"{campo} deve ser informada.");
+        }
+
+        return data;
+    }
+
+    public static void PeriodoValido(
+        DateOnly dataInicial,
+        DateOnly? dataFinal,
+        string nomeDataInicial,
+        string nomeDataFinal)
+    {
+        DataObrigatoria(dataInicial, nomeDataInicial);
+        if (dataFinal.HasValue)
+        {
+            DataObrigatoria(dataFinal.Value, nomeDataFinal);
+        }
+        if (dataFinal.HasValue && dataFinal.Value < dataInicial)
+        {
+            throw new ValidationException(
+                $"{nomeDataFinal} não pode ser anterior a {nomeDataInicial}.");
+        }
+    }
+
+    public static void PeriodoValido(
+        DateTime dataInicial,
+        DateTime dataFinal,
+        DateTime? dataEfetivacao,
+        string nomeDataInicial,
+        string nomeDataFinal,
+        string nomeDataEfetivacao)
+    {
+        if (dataFinal.Date < dataInicial.Date)
+        {
+            throw new ValidationException(
+                $"{nomeDataFinal} não pode ser anterior a {nomeDataInicial}.");
+        }
+
+        if (dataEfetivacao.HasValue && dataEfetivacao.Value.Date < dataInicial.Date)
+        {
+            throw new ValidationException(
+                $"{nomeDataEfetivacao} não pode ser anterior a {nomeDataInicial}.");
+        }
     }
 
     public static string ValidarCpf(string cpf)

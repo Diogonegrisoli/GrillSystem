@@ -1,17 +1,17 @@
-﻿namespace GrillSystem.Models
+namespace GrillSystem.Models
 {
     public class MateriaPrima
     {
         public int Id { get; set; }
-        public string Codigo { get; set; }
-        public string Descricao { get; set; }
+        public string Codigo { get; set; } = string.Empty;
+        public string Descricao { get; set; } = string.Empty;
         public decimal Quantidade { get; set; }
-        public  decimal QuantidadeMinima { get; set; }
+        public decimal QuantidadeMinima { get; set; }
         public UnidadeMedida UnidadeMedida { get; set; }
 
         public MateriaPrima()
         {
-            
+
         }
 
         public MateriaPrima(string codigo, string descricao, decimal quantidade, decimal quantidadeMinima, UnidadeMedida unidadeMedida)

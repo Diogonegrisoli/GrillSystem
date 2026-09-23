@@ -1,116 +1,157 @@
-﻿using GrillSystem.Data;
+using GrillSystem.Data;
 using GrillSystem.Dto;
+using GrillSystem.Infrastructure;
 using GrillSystem.Models;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrillSystem.Services
+namespace GrillSystem.Services;
+
+public class ProdutoPedidoVendaServices
 {
-    public class ProdutoPedidoVendaServices
+    private readonly AppDbContext _context;
+
+    public ProdutoPedidoVendaServices(AppDbContext context) => _context = context;
+
+    public Task<ResultadoPaginadoDto<ProdutoPedidoVenda>> ListAll(
+        PaginacaoDto paginacao,
+        CancellationToken cancellationToken = default) =>
+        _context.ProdutosPedidosVenda
+            .AsNoTracking()
+            .OrderBy(x => x.Id)
+            .PaginarAsync(paginacao, cancellationToken);
+
+    public async Task<ProdutoPedidoVenda> GetId(
+        int id,
+        CancellationToken cancellationToken = default) =>
+        await _context.ProdutosPedidosVenda
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+        ?? throw new KeyNotFoundException(
+            $"O item de venda com o id {id} não foi localizado.");
+
+    public async Task<ProdutoPedidoVenda> Create(
+        ProdutoPedidoVendaDto data,
+        CancellationToken cancellationToken = default)
     {
-        private readonly AppDbContext _context;
-        public ProdutoPedidoVendaServices(AppDbContext context)
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(cancellationToken);
+
+        var produto = await _context.Produtos
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == data.ProdutoId, cancellationToken)
+            ?? throw new KeyNotFoundException($"O produto com o id {data.ProdutoId} não foi localizado.");
+        await ValidarPedidoEditavel(data.PedidoVendaId, cancellationToken);
+        await ValidarDuplicidade(data.PedidoVendaId, data.ProdutoId, null, cancellationToken);
+
+        var item = new ProdutoPedidoVenda(
+            data.Quantidade,
+            produto.Preco,
+            data.ProdutoId,
+            data.PedidoVendaId);
+
+        _context.ProdutosPedidosVenda.Add(item);
+        await _context.SaveChangesAsync(cancellationToken);
+        await RecalcularTotal(data.PedidoVendaId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return item;
+    }
+
+    public async Task<ProdutoPedidoVenda> Update(
+        int id,
+        ProdutoPedidoVendaDto data,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(cancellationToken);
+
+        var item = await _context.ProdutosPedidosVenda
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"O item de venda com o id {id} não foi localizado.");
+        int pedidoAnteriorId = item.PedidoVendaId;
+        var produto = await _context.Produtos
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == data.ProdutoId, cancellationToken)
+            ?? throw new KeyNotFoundException($"O produto com o id {data.ProdutoId} não foi localizado.");
+
+        await ValidarPedidoEditavel(item.PedidoVendaId, cancellationToken);
+        await ValidarPedidoEditavel(data.PedidoVendaId, cancellationToken);
+        await ValidarDuplicidade(data.PedidoVendaId, data.ProdutoId, id, cancellationToken);
+
+        item.Quantidade = data.Quantidade;
+        item.PrecoUnitario = produto.Preco;
+        item.ProdutoId = data.ProdutoId;
+        item.PedidoVendaId = data.PedidoVendaId;
+        await _context.SaveChangesAsync(cancellationToken);
+        await RecalcularTotal(pedidoAnteriorId, cancellationToken);
+        if (pedidoAnteriorId != data.PedidoVendaId)
         {
-            _context = context;
+            await RecalcularTotal(data.PedidoVendaId, cancellationToken);
         }
+        await transaction.CommitAsync(cancellationToken);
+        return item;
+    }
 
-        public async Task<ICollection<ProdutoPedidoVenda>> ListAll()
+    public async Task<ProdutoPedidoVenda> Delete(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(cancellationToken);
+        var item = await _context.ProdutosPedidosVenda
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"O item de venda com o id {id} não foi localizado.");
+        await ValidarPedidoEditavel(item.PedidoVendaId, cancellationToken);
+
+        int pedidoId = item.PedidoVendaId;
+        _context.ProdutosPedidosVenda.Remove(item);
+        await _context.SaveChangesAsync(cancellationToken);
+        await RecalcularTotal(pedidoId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return item;
+    }
+
+    private async Task ValidarPedidoEditavel(int pedidoId, CancellationToken cancellationToken)
+    {
+        var status = await _context.PedidosVenda
+            .Where(x => x.Id == pedidoId)
+            .Select(x => (StatusPedido?)x.Status)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new KeyNotFoundException($"O pedido de venda com o id {pedidoId} não foi localizado.");
+
+        if (status != StatusPedido.Pendente)
         {
-            try
-            {
-                var produto = await _context.ProdutosPedidosVenda.ToListAsync();
-                if (produto is null)
-                {
-                    throw new Exception("Não foi possível retornar nenhum produto!");
-                }
-
-                return produto;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            throw new RegraNegocioException(
+                "Os itens só podem ser alterados enquanto o pedido de venda estiver pendente.");
         }
+    }
 
-        public async Task<ProdutoPedidoVenda> GetId(int id)
+    private async Task ValidarDuplicidade(
+        int pedidoId,
+        int produtoId,
+        int? ignorarId,
+        CancellationToken cancellationToken)
+    {
+        bool duplicado = await _context.ProdutosPedidosVenda.AnyAsync(
+            x => x.PedidoVendaId == pedidoId && x.ProdutoId == produtoId &&
+                 (!ignorarId.HasValue || x.Id != ignorarId.Value),
+            cancellationToken);
+        if (duplicado)
         {
-            try
-            {
-                var produto = await _context.ProdutosPedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
-                if (produto is null)
-                {
-                    throw new Exception($"O produto com o id {id}# não foi localizado!");
-                }
-                return produto;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            throw new ConflitoNegocioException("O produto já foi incluído neste pedido de venda.");
         }
+    }
 
-        public async Task<ProdutoPedidoVenda> Create([FromBody] ProdutoPedidoVendaDto data)
-        {
-            try
-            {
-                var produto = new ProdutoPedidoVenda
-                (data.Quantidade, data.ProdutoId, data.PedidoVendaId);
+    private async Task RecalcularTotal(int pedidoId, CancellationToken cancellationToken)
+    {
+        decimal total = await _context.ProdutosPedidosVenda
+            .Where(x => x.PedidoVendaId == pedidoId)
+            .SumAsync(x => x.Quantidade * x.PrecoUnitario, cancellationToken);
 
-                _context.ProdutosPedidosVenda.Add(produto);
-                await _context.SaveChangesAsync();
-
-                return produto;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<ProdutoPedidoVenda> Update(int id, [FromBody] ProdutoPedidoVendaDto data)
-        {
-            try
-            {
-                var produto = await _context.ProdutosPedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
-                if (produto is null)
-                {
-                    throw new Exception($"O produto com o id {id}# não foi localizado!");
-                }
-
-                produto.Quantidade = data.Quantidade;
-                produto.ProdutoId = data.ProdutoId;
-                produto.PedidoVendaId = data.PedidoVendaId;
-
-                await _context.SaveChangesAsync();
-
-
-                return produto;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível atualizar o produto/pedido de venda.", ex);
-            }
-        }
-
-        public async Task<ProdutoPedidoVenda> Delete(int id)
-        {
-            try
-            {
-                var produto = await _context.ProdutosPedidosVenda.FirstOrDefaultAsync(x => x.Id == id);
-                if (produto is null)
-                {
-                    throw new Exception($"O produto com o id {id}# não foi localizado!");
-                }
-
-                _context.ProdutosPedidosVenda.Remove(produto);
-                await _context.SaveChangesAsync();
-
-                return produto;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível deletar o produto/pedido de venda.", ex);
-            }
-        }
+        await _context.PedidosVenda
+            .Where(x => x.Id == pedidoId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ValorTotal, total), cancellationToken);
+        await _context.ContasReceber
+            .Where(x => x.PedidoVendaId == pedidoId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Valor, total), cancellationToken);
     }
 }

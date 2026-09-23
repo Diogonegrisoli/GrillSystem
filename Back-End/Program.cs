@@ -33,11 +33,18 @@ if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
 
 string jwtIssuer = builder.Configuration["JWT_ISSUER"] ?? "GrillSystem";
 string jwtAudience = builder.Configuration["JWT_AUDIENCE"] ?? "GrillSystem.Api";
+
 string connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Configure a connection string DefaultConnection.");
+    ?? throw new InvalidOperationException("A conexão com banco falhou.");
+
+string mysqlVersionText = builder.Configuration["MYSQL_VERSION"] ?? "8.0.0";
+if (!Version.TryParse(mysqlVersionText, out Version? mysqlVersion))
+{
+    throw new InvalidOperationException("MYSQL_VERSION deve usar o formato numérico, por exemplo: 8.0.0.");
+}
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseMySql(connectionString, new MySqlServerVersion(mysqlVersion)));
 
 builder.Services
     .AddIdentityCore<Usuario>(options =>

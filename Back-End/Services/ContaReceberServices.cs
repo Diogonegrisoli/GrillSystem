@@ -1,136 +1,133 @@
-﻿using GrillSystem.Data;
+using GrillSystem.Data;
 using GrillSystem.Dto;
+using GrillSystem.Infrastructure;
 using GrillSystem.Models;
-using Microsoft.AspNetCore.Mvc;
+using GrillSystem.Validacao;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
-namespace GrillSystem.Services
+namespace GrillSystem.Services;
+
+public class ContaReceberServices
 {
-    public class ContaReceberServices
+    private readonly AppDbContext _context;
+
+    public ContaReceberServices(AppDbContext context) => _context = context;
+
+    public Task<ResultadoPaginadoDto<ContaReceber>> ListAll(
+        PaginacaoDto paginacao,
+        CancellationToken cancellationToken = default) =>
+        _context.ContasReceber.AsNoTracking()
+            .OrderBy(x => x.StatusPagamento).ThenBy(x => x.DataVencimento)
+            .PaginarAsync(paginacao, cancellationToken);
+
+    public async Task<ContaReceber> GetId(int id, CancellationToken cancellationToken = default) =>
+        await _context.ContasReceber.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+        ?? throw new KeyNotFoundException($"A conta a receber com o id {id} não foi localizada.");
+
+    public async Task<ContaReceber> Create(
+        ContaReceberDto data,
+        CancellationToken cancellationToken = default)
     {
-        private readonly AppDbContext _context;
-        public ContaReceberServices(AppDbContext context)
+        DateOnly emissao = DateOnly.FromDateTime(DateTime.Today);
+        TipoPagamentoReceber tipoPagamento = data.TipoPagamento
+            ?? throw new ValidationException("O tipo de pagamento deve ser informado.");
+        ValidarDatas(emissao, data.DataVencimento, data.DataRecebimento);
+        decimal total = await ObterTotalPedido(data.PedidoVendaId, cancellationToken);
+        if (await _context.ContasReceber.AnyAsync(
+                x => x.PedidoVendaId == data.PedidoVendaId,
+                cancellationToken))
         {
-            _context = context;
+            throw new ConflitoNegocioException("O pedido já possui uma conta a receber.");
         }
 
-        public async Task<ICollection<ContaReceber>> ListAll()
-        {
-            try
-            {
-                var conta = await _context.ContasReceber.ToListAsync();
-                if (conta is null)
-                {
-                    throw new Exception("Não foi possível retornar nenhum funcionário!");
-                }
+        var status = data.DataRecebimento.HasValue ? StatusPagamento.Pago : StatusPagamento.Pendente;
+        var conta = new ContaReceber(
+            total,
+            data.DataVencimento,
+            status,
+            data.DataRecebimento,
+            tipoPagamento,
+            data.PedidoVendaId);
+        _context.ContasReceber.Add(conta);
+        await _context.SaveChangesAsync(cancellationToken);
+        return conta;
+    }
 
-                return conta;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+    public async Task<ContaReceber> Update(
+        int id,
+        ContaReceberUpdateDto data,
+        CancellationToken cancellationToken = default)
+    {
+        var conta = await _context.ContasReceber
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"A conta a receber com o id {id} não foi localizada.");
+        TipoPagamentoReceber tipoPagamento = data.TipoPagamento
+            ?? throw new ValidationException("O tipo de pagamento deve ser informado.");
+        ValidarDatas(conta.DataEmissao, data.DataVencimento, data.DataRecebimento);
+        if (await _context.ContasReceber.AnyAsync(
+                x => x.PedidoVendaId == data.PedidoVendaId && x.Id != id,
+                cancellationToken))
+        {
+            throw new ConflitoNegocioException("O pedido já possui outra conta a receber.");
         }
 
-        public async Task<ContaReceber> GetId(int id)
+        conta.Valor = await ObterTotalPedido(data.PedidoVendaId, cancellationToken);
+        conta.DataVencimento = data.DataVencimento;
+        conta.DataRecebimento = data.DataRecebimento;
+        conta.StatusPagamento = data.DataRecebimento.HasValue
+            ? StatusPagamento.Pago
+            : data.DataVencimento < DateOnly.FromDateTime(DateTime.Today)
+                ? StatusPagamento.Atrasado
+                : StatusPagamento.Pendente;
+        conta.TipoPagamento = tipoPagamento;
+        conta.PedidoVendaId = data.PedidoVendaId;
+        await _context.SaveChangesAsync(cancellationToken);
+        return conta;
+    }
+
+    public async Task<ContaReceber> Delete(int id, CancellationToken cancellationToken = default)
+    {
+        var conta = await _context.ContasReceber
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"A conta a receber com o id {id} não foi localizada.");
+        if (conta.StatusPagamento == StatusPagamento.Pago)
         {
-            try
-            {
-                var conta = await _context.ContasReceber.FirstOrDefaultAsync(x => x.Id == id);
-                if (conta is null)
-                {
-                    throw new Exception($"O funcionário com o id {id}# não foi localizado!");
-                }
-                return conta;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            throw new RegraNegocioException("Uma conta recebida não pode ser excluída.");
         }
+        _context.ContasReceber.Remove(conta);
+        await _context.SaveChangesAsync(cancellationToken);
+        return conta;
+    }
 
-        public async Task<ContaReceber> Create([FromBody] ContaReceberDto data)
+    private static void ValidarDatas(
+        DateOnly emissao,
+        DateOnly vencimento,
+        DateOnly? recebimento)
+    {
+        Validacoes.PeriodoValido(emissao, vencimento, "data de emissão", "data de vencimento");
+        if (recebimento.HasValue)
         {
-            try
-            {
-               
-                if (data.DataVencimento < DateOnly.FromDateTime(DateTime.Today))
-                {
-                    throw new Exception("A data do vencimento não pode ser menor que a data atual!");
-                }
-
-                if(data.DataRecebimento.HasValue && data.DataRecebimento < DateOnly.FromDateTime(DateTime.Today))
-                {
-                    throw new Exception("A data do recebimento não pode ser menor que a data da emissão!");
-                }
-
-                StatusPagamento statusPagamento = StatusPagamento.Pendente;
-                if (data.DataRecebimento.HasValue)
-                {
-                    statusPagamento = StatusPagamento.Pago;
-                }
-
-                var conta = new ContaReceber
-                (data.Valor, data.DataVencimento, statusPagamento, data.DataRecebimento, data.TipoPagamento, data.PedidoVendaId);
-
-                _context.ContasReceber.Add(conta);
-                await _context.SaveChangesAsync();
-
-                return conta;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            Validacoes.PeriodoValido(emissao, recebimento, "data de emissão", "data de recebimento");
+            Validacoes.DataNaoFutura(recebimento.Value, "A data de recebimento");
         }
+    }
 
-        public async Task<ContaReceber> Update(int id, [FromBody] ContaReceberUpdateDto data)
+    private async Task<decimal> ObterTotalPedido(int pedidoId, CancellationToken cancellationToken)
+    {
+        decimal? total = await _context.PedidosVenda
+            .Where(x => x.Id == pedidoId)
+            .Select(x => (decimal?)x.ValorTotal)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (!total.HasValue)
         {
-            try
-            {
-                var conta = await _context.ContasReceber.FirstOrDefaultAsync(x => x.Id == id);
-                if (conta is null)
-                {
-                    throw new Exception($"A conta a receber com o id {id} não foi localizada!");
-                }
-
-                conta.Valor = data.Valor;
-                conta.DataVencimento = data.DataVencimento;
-                conta.DataRecebimento = data.DataRecebimento;
-                conta.StatusPagamento = data.StatusPagamento;
-                conta.TipoPagamento = data.TipoPagamento;
-                conta.PedidoVendaId = data.PedidoVendaId;
-
-                await _context.SaveChangesAsync();
-
-
-                return conta;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível atualizar a conta a receber.", ex);
-            }
+            throw new KeyNotFoundException($"O pedido de venda com o id {pedidoId} não foi localizado.");
         }
-
-        public async Task<ContaReceber> Delete(int id)
+        if (total.Value <= 0)
         {
-            try
-            {
-                var conta = await _context.ContasReceber.FirstOrDefaultAsync(x => x.Id == id);
-                if (conta is null)
-                {
-                    throw new Exception($"A conta a receber com o id {id} não foi localizada!");
-                }
-
-                _context.ContasReceber.Remove(conta);
-                await _context.SaveChangesAsync();
-
-                return conta;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível deletar a conta a receber.", ex);
-            }
+            throw new RegraNegocioException("Inclua os itens do pedido antes de gerar a conta a receber.");
         }
+        return total.Value;
     }
 }

@@ -1,120 +1,76 @@
-﻿using GrillSystem.Data;
+using GrillSystem.Data;
 using GrillSystem.Dto;
+using GrillSystem.Infrastructure;
 using GrillSystem.Models;
 using GrillSystem.Validacao;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrillSystem.Services
+namespace GrillSystem.Services;
+
+public class FornecedorService
 {
-    public class FornecedorService
+    private readonly AppDbContext _context;
+
+    public FornecedorService(AppDbContext context) => _context = context;
+
+    public Task<ResultadoPaginadoDto<Fornecedor>> ListAll(
+        PaginacaoDto paginacao,
+        CancellationToken cancellationToken = default) =>
+        _context.Fornecedores.AsNoTracking().OrderBy(x => x.RazaoSocial)
+            .PaginarAsync(paginacao, cancellationToken);
+
+    public async Task<Fornecedor> GetId(int id, CancellationToken cancellationToken = default) =>
+        await _context.Fornecedores.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+        ?? throw new KeyNotFoundException($"O fornecedor com o id {id} não foi localizado.");
+
+    public async Task<Fornecedor> Create(
+        FornecedorDto data,
+        CancellationToken cancellationToken = default)
     {
-        private readonly AppDbContext _context;
-        public FornecedorService(AppDbContext context)
+        string cnpj = Validacoes.ValidarCnpj(data.Cnpj);
+        if (await _context.Fornecedores.AnyAsync(x => x.Cnpj == cnpj, cancellationToken))
         {
-            _context = context;   
+            throw new ConflitoNegocioException("O CNPJ informado já está cadastrado.");
         }
+        var fornecedor = new Fornecedor(
+            data.RazaoSocial.Trim(),
+            data.NomeFantasia.Trim(),
+            cnpj,
+            data.Email.Trim(),
+            data.Endereco.Trim());
+        _context.Fornecedores.Add(fornecedor);
+        await _context.SaveChangesAsync(cancellationToken);
+        return fornecedor;
+    }
 
-        public async Task<ICollection<Fornecedor>> ListAll()
+    public async Task<Fornecedor> Update(
+        int id,
+        FornecedorUpdateDto data,
+        CancellationToken cancellationToken = default)
+    {
+        var fornecedor = await _context.Fornecedores
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"O fornecedor com o id {id} não foi localizado.");
+        fornecedor.RazaoSocial = data.RazaoSocial.Trim();
+        fornecedor.NomeFantasia = data.NomeFantasia.Trim();
+        fornecedor.Email = data.Email.Trim();
+        fornecedor.Endereco = data.Endereco.Trim();
+        await _context.SaveChangesAsync(cancellationToken);
+        return fornecedor;
+    }
+
+    public async Task<Fornecedor> Delete(int id, CancellationToken cancellationToken = default)
+    {
+        var fornecedor = await _context.Fornecedores
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException($"O fornecedor com o id {id} não foi localizado.");
+        if (await _context.PedidosCompra.AnyAsync(x => x.FornecedorId == id, cancellationToken))
         {
-            try
-            {
-                var fornecedor = await _context.Fornecedores.ToListAsync();
-                if (fornecedor.Count() < 1)
-                {
-                    throw new Exception("Não foi possível retornar nenhum fornecedor!");
-                }
-
-                return fornecedor;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            throw new ConflitoNegocioException("O fornecedor possui pedidos e não pode ser excluído.");
         }
-
-        public async Task<Fornecedor> GetId(int id)
-        {
-            try
-            {
-                var fornecedor = await _context.Fornecedores.FirstOrDefaultAsync(x => x.Id == id);
-                if (fornecedor is null)
-                {
-                    throw new Exception($"O fornecedor com o id {id}# não foi localizado!");
-                }
-                return fornecedor;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<Fornecedor> Create([FromBody] FornecedorDto data)
-        {
-            try
-            {
-                string cnpjInserido = data.Cnpj.Replace(".", "").Replace("-", "").Replace("/", "");
-                string cnpj = Validacoes.ValidarCnpj(cnpjInserido);
-
-                var fornecedor = new Fornecedor
-                (data.RazaoSocial, data.NomeFantasia, cnpj, data.Endereco, data.Email);
-
-                _context.Fornecedores.Add(fornecedor);
-                await _context.SaveChangesAsync();
-
-                return fornecedor;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<Fornecedor> Update(int id, [FromBody] FornecedorUpdateDto data)
-        {
-            try
-            {
-                var fornecedor = await _context.Fornecedores.FirstOrDefaultAsync(x => x.Id == id);
-                if (fornecedor is null)
-                {
-                    throw new Exception($"A movimentação no estoque com o id {id}# não foi localizado!");
-                }
-
-                fornecedor.RazaoSocial = data.RazaoSocial;
-                fornecedor.NomeFantasia = data.NomeFantasia;
-                fornecedor.Email = data.Email;
-                fornecedor.Endereco = data.Endereco;
-
-                await _context.SaveChangesAsync();
-
-                return fornecedor;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível atualizar o fornecedor.", ex);
-            }
-        }
-
-        public async Task<Fornecedor> Delete(int id)
-        {
-            try
-            {
-                var fornecedor = await _context.Fornecedores.FirstOrDefaultAsync(x => x.Id == id);
-                if (fornecedor is null)
-                {
-                    throw new Exception($"O fornecedor com o id {id}# não foi localizado!");
-                }
-
-                _context.Fornecedores.Remove(fornecedor);
-                await _context.SaveChangesAsync();
-
-                return fornecedor;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível deletar o fornecedor.", ex);
-            }
-        }
+        _context.Fornecedores.Remove(fornecedor);
+        await _context.SaveChangesAsync(cancellationToken);
+        return fornecedor;
     }
 }

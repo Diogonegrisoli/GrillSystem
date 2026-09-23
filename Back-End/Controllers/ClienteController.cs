@@ -1,4 +1,4 @@
-﻿using GrillSystem.Data;
+using GrillSystem.Data;
 using GrillSystem.Models;
 using GrillSystem.Dto;
 using Microsoft.AspNetCore.Mvc;
@@ -20,9 +20,11 @@ namespace GrillSystem.Controllers
 
 
         [HttpGet]
-        public async Task<ICollection<Cliente>> ListAll()
+        public async Task<ResultadoPaginadoDto<Cliente>> ListAll(
+            [FromQuery] PaginacaoDto paginacao,
+            CancellationToken cancellationToken)
         {
-            var cliente = await _service.ListAll();
+            var cliente = await _service.ListAll(paginacao, cancellationToken);
             return cliente;
         }
 
@@ -55,9 +57,9 @@ namespace GrillSystem.Controllers
 
                 return Ok();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.Message);
+                throw;
             }
         }
 
@@ -71,9 +73,9 @@ namespace GrillSystem.Controllers
 
                 return NoContent();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.Message);
+                throw;
             }
         }
     }

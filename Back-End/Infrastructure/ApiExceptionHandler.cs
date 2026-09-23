@@ -27,7 +27,9 @@ public sealed class ApiExceptionHandler : IExceptionHandler
         {
             ValidationException or ArgumentException => StatusCodes.Status400BadRequest,
             KeyNotFoundException => StatusCodes.Status404NotFound,
-            DbUpdateConcurrencyException => StatusCodes.Status409Conflict,
+            ConflitoNegocioException or DbUpdateConcurrencyException or DbUpdateException =>
+                StatusCodes.Status409Conflict,
+            RegraNegocioException => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status500InternalServerError
         };
 
@@ -53,9 +55,10 @@ public sealed class ApiExceptionHandler : IExceptionHandler
                 StatusCodes.Status400BadRequest => "Dados inválidos",
                 StatusCodes.Status404NotFound => "Recurso não encontrado",
                 StatusCodes.Status409Conflict => "Conflito ao atualizar o recurso",
+                StatusCodes.Status422UnprocessableEntity => "Regra de negócio não atendida",
                 _ => "Erro interno do servidor"
             },
-            Detail = statusCode >= 500
+            Detail = statusCode >= 500 || exception is DbUpdateException
                 ? "Ocorreu um erro inesperado. Consulte os logs usando o identificador da requisição."
                 : exception.Message,
             Instance = httpContext.Request.Path

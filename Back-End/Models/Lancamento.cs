@@ -1,15 +1,15 @@
-﻿namespace GrillSystem.Models
+namespace GrillSystem.Models
 {
     public class Lancamento
     {
         public int Id { get; set; }
         public decimal Valor { get; set; }
         public DateOnly Data { get; set; }
-        public string Descricao { get; set; }
+        public string Descricao { get; set; } = string.Empty;
         public int CategoriaFinanceiraId { get; set; }
-        public CategoriaFinanceira CategoriaFinanceira { get; set; }
+        public CategoriaFinanceira CategoriaFinanceira { get; set; } = null!;
         public int FuncionarioId { get; set; }
-        public Funcionario Funcionario { get; set; }
+        public Funcionario Funcionario { get; set; } = null!;
 
         public Lancamento() { }
 

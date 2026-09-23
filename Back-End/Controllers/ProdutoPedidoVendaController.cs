@@ -1,4 +1,4 @@
-﻿using GrillSystem.Dto;
+using GrillSystem.Dto;
 using GrillSystem.Models;
 using GrillSystem.Services;
 using Microsoft.AspNetCore.Http;
@@ -17,15 +17,17 @@ namespace GrillSystem.Controllers
         }
 
         [HttpGet]
-        public async Task<ICollection<ProdutoPedidoVenda>> Get()
+        public async Task<ResultadoPaginadoDto<ProdutoPedidoVenda>> Get(
+            [FromQuery] PaginacaoDto paginacao,
+            CancellationToken cancellationToken)
         {
             try
             {
-                return await _service.ListAll();
+                return await _service.ListAll(paginacao, cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.Message);
+                throw;
             }
         }
 
@@ -36,49 +38,54 @@ namespace GrillSystem.Controllers
             {
                 return await _service.GetId(id);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.Message);
+                throw;
             }
         }
 
         [HttpPost]
-        public async Task<ActionResult<ProdutoPedidoVenda>> Create([FromBody] ProdutoPedidoVendaDto data)
+        public async Task<ActionResult<ProdutoPedidoVenda>> Create(
+            [FromBody] ProdutoPedidoVendaDto data,
+            CancellationToken cancellationToken)
         {
             try
             {
-                return await _service.Create(data);
+                return await _service.Create(data, cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.Message);
+                throw;
             }
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ProdutoPedidoVenda>> Update(int id, ProdutoPedidoVendaDto data)
+        public async Task<ActionResult<ProdutoPedidoVenda>> Update(
+            int id,
+            ProdutoPedidoVendaDto data,
+            CancellationToken cancellationToken)
         {
             try
             {
-                return await _service.Update(id, data);
+                return await _service.Update(id, data, cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.Message);
+                throw;
             }
         }
 
         [Authorize(Policy = Politicas.GerenciarSistema)]
         [HttpDelete("{id}")]
-        public async Task<ActionResult<ProdutoPedidoVenda>> Delete(int id)
+        public async Task<ActionResult<ProdutoPedidoVenda>> Delete(int id, CancellationToken cancellationToken)
         {
             try
             {
-                return await _service.Delete(id);
+                return await _service.Delete(id, cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception(ex.Message);
+                throw;
             }
         }
     }

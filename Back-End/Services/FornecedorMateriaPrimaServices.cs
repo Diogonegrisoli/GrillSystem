@@ -1,115 +1,93 @@
-﻿using GrillSystem.Data;
+using GrillSystem.Data;
 using GrillSystem.Dto;
+using GrillSystem.Infrastructure;
 using GrillSystem.Models;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace GrillSystem.Services
+namespace GrillSystem.Services;
+
+public class FornecedorMateriaPrimaServices
 {
-    public class FornecedorMateriaPrimaServices
+    private readonly AppDbContext _context;
+
+    public FornecedorMateriaPrimaServices(AppDbContext context) => _context = context;
+
+    public Task<ResultadoPaginadoDto<FornecedorMateriaPrima>> ListAll(
+        PaginacaoDto paginacao,
+        CancellationToken cancellationToken = default) =>
+        _context.FornecedoresMateriaPrima.AsNoTracking().OrderBy(x => x.Id)
+            .PaginarAsync(paginacao, cancellationToken);
+
+    public async Task<FornecedorMateriaPrima> GetId(
+        int id,
+        CancellationToken cancellationToken = default) =>
+        await _context.FornecedoresMateriaPrima.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+        ?? throw new KeyNotFoundException(
+            $"O vínculo de fornecedor e matéria-prima com o id {id} não foi localizado.");
+
+    public async Task<FornecedorMateriaPrima> Create(
+        FornecedorMateriaPrimaDto data,
+        CancellationToken cancellationToken = default)
     {
-        private readonly AppDbContext _context;
-        public FornecedorMateriaPrimaServices(AppDbContext context)
+        await Validar(data, null, cancellationToken);
+        var vinculo = new FornecedorMateriaPrima(data.FornecedorId, data.MateriaPrimaId);
+        _context.FornecedoresMateriaPrima.Add(vinculo);
+        await _context.SaveChangesAsync(cancellationToken);
+        return vinculo;
+    }
+
+    public async Task<FornecedorMateriaPrima> Update(
+        int id,
+        FornecedorMateriaPrimaDto data,
+        CancellationToken cancellationToken = default)
+    {
+        var vinculo = await _context.FornecedoresMateriaPrima
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException(
+                $"O vínculo de fornecedor e matéria-prima com o id {id} não foi localizado.");
+        await Validar(data, id, cancellationToken);
+        vinculo.FornecedorId = data.FornecedorId;
+        vinculo.MateriaPrimaId = data.MateriaPrimaId;
+        await _context.SaveChangesAsync(cancellationToken);
+        return vinculo;
+    }
+
+    public async Task<FornecedorMateriaPrima> Delete(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var vinculo = await _context.FornecedoresMateriaPrima
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new KeyNotFoundException(
+                $"O vínculo de fornecedor e matéria-prima com o id {id} não foi localizado.");
+        _context.FornecedoresMateriaPrima.Remove(vinculo);
+        await _context.SaveChangesAsync(cancellationToken);
+        return vinculo;
+    }
+
+    private async Task Validar(
+        FornecedorMateriaPrimaDto data,
+        int? ignorarId,
+        CancellationToken cancellationToken)
+    {
+        if (!await _context.Fornecedores.AnyAsync(x => x.Id == data.FornecedorId, cancellationToken))
         {
-            _context = context;
+            throw new KeyNotFoundException($"O fornecedor com o id {data.FornecedorId} não foi localizado.");
         }
-
-        public async Task<ICollection<FornecedorMateriaPrima>> ListAll()
+        if (!await _context.MateriasPrimas.AnyAsync(x => x.Id == data.MateriaPrimaId, cancellationToken))
         {
-            try
-            {
-                var fornecedorMateria = await _context.FornecedoresMateriaPrima.ToListAsync();
-                if (fornecedorMateria is null)
-                {
-                    throw new Exception("Não foi possível retornar nenhum fornecedor/matéria-prima!");
-                }
-
-                return fornecedorMateria;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            throw new KeyNotFoundException(
+                $"A matéria-prima com o id {data.MateriaPrimaId} não foi localizada.");
         }
-
-        public async Task<FornecedorMateriaPrima> GetId(int id)
+        if (await _context.FornecedoresMateriaPrima.AnyAsync(
+                x => x.FornecedorId == data.FornecedorId &&
+                     x.MateriaPrimaId == data.MateriaPrimaId &&
+                     (!ignorarId.HasValue || x.Id != ignorarId),
+                cancellationToken))
         {
-            try
-            {
-                var fornecedorMateria = await _context.FornecedoresMateriaPrima.FirstOrDefaultAsync(x => x.Id == id);
-                if (fornecedorMateria is null)
-                {
-                    throw new Exception("Não foi possível retornar nenhum fornecedor/matéria-prima!");
-                }
-
-                return fornecedorMateria;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<FornecedorMateriaPrima> Create([FromBody] FornecedorMateriaPrimaDto data)
-        {
-            try
-            {
-                var fornecedorMateria = new FornecedorMateriaPrima
-                    (data.FornecedorId, data.MateriaPrimaId);
-
-                _context.FornecedoresMateriaPrima.Add(fornecedorMateria);
-                await _context.SaveChangesAsync();
-
-                return fornecedorMateria;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<FornecedorMateriaPrima> Update(int id, [FromBody] FornecedorMateriaPrimaDto data)
-        {
-            try
-            {
-                var fornecedorMateria = await _context.FornecedoresMateriaPrima.FirstOrDefaultAsync(x => x.Id == id);
-                if (fornecedorMateria is null)
-                {
-                    throw new Exception("Não foi possível retornar nenhum fornecedor/matéria-prima!");
-                }
-
-                fornecedorMateria.FornecedorId = data.FornecedorId;
-                fornecedorMateria.MateriaPrimaId = data.MateriaPrimaId;
-
-                await _context.SaveChangesAsync();
-
-                return fornecedorMateria;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível atualizar o fornecedor/matéria-prima.", ex);
-            }
-        }
-
-        public async Task<FornecedorMateriaPrima> Delete(int id)
-        {
-            try
-            {
-                var fornecedorMateria = await _context.FornecedoresMateriaPrima.FirstOrDefaultAsync(x => x.Id == id);
-                if (fornecedorMateria is null)
-                {
-                    throw new Exception("Não foi possível retornar nenhum fornecedor/matéria-prima!");
-                }
-
-                _context.FornecedoresMateriaPrima.Remove(fornecedorMateria);
-                await _context.SaveChangesAsync();
-
-                return fornecedorMateria;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Não foi possível deletar o fornecedor/matéria-prima.", ex);
-            }
+            throw new ConflitoNegocioException(
+                "O fornecedor já está associado a esta matéria-prima.");
         }
     }
 }
