@@ -13,6 +13,8 @@ namespace GrillSystem.Models
         public StatusContaPagar Status { get; set; }
         public int PedidoCompraId { get; set; }
         public PedidoCompra PedidoCompra { get; set; } = null!;
+        public string Observacao { get; set; } = string.Empty;
+        public ICollection<ContaPagarParcelada> Parcelas { get; set; } = new List<ContaPagarParcelada>();
 
         public ContaPagar() { }
 

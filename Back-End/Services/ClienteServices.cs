@@ -17,11 +17,15 @@ public class ClienteServices
     public Task<ResultadoPaginadoDto<Cliente>> ListAll(
         PaginacaoDto paginacao,
         CancellationToken cancellationToken = default) =>
-        _context.Clientes.AsNoTracking().OrderBy(x => x.Nome)
+        _context.Clientes.AsNoTracking()
+            .Include(x => x.PessoaFisica).Include(x => x.PessoaJuridica)
+            .OrderBy(x => x.Nome)
             .PaginarAsync(paginacao, cancellationToken);
 
     public async Task<Cliente> GetId(int id, CancellationToken cancellationToken = default) =>
         await _context.Clientes.AsNoTracking()
+            .Include(x => x.PessoaFisica).Include(x => x.PessoaJuridica)
+            .Include(x => x.Enderecos)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
         ?? throw new KeyNotFoundException($"O cliente com o id {id} não foi localizado.");
 
@@ -36,12 +40,47 @@ public class ClienteServices
             throw new ConflitoNegocioException("O CPF/CNPJ informado já está cadastrado.");
         }
 
+        string nome = tipo == TipoCliente.Juridica
+            ? (data.RazaoSocial ?? data.Nome).Trim()
+            : data.Nome.Trim();
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            throw new ValidationException("Informe o nome ou a razão social do cliente.");
+        }
+        if (tipo == TipoCliente.Fisica && nome.Length > 100)
+        {
+            throw new ValidationException("O nome da pessoa física deve ter no máximo 100 caracteres.");
+        }
         var cliente = new Cliente(
-            data.Nome.Trim(),
+            nome,
             documento,
             tipo,
             SomenteDigitos(data.Telefone),
-            data.Endereco.Trim());
+            data.Endereco.Trim())
+        {
+            Email = data.Email.Trim(),
+            Celular = SomenteDigitos(data.Celular),
+            Observacoes = data.Observacoes.Trim()
+        };
+        if (tipo == TipoCliente.Fisica)
+        {
+            cliente.PessoaFisica = new PessoaFisica
+            {
+                Nome = nome,
+                Cpf = documento,
+                DataNascimento = data.DataNascimento
+            };
+        }
+        else
+        {
+            cliente.PessoaJuridica = new PessoaJuridica
+            {
+                RazaoSocial = nome,
+                NomeFantasia = string.IsNullOrWhiteSpace(data.NomeFantasia)
+                    ? nome : data.NomeFantasia.Trim(),
+                Cnpj = documento
+            };
+        }
         _context.Clientes.Add(cliente);
         await _context.SaveChangesAsync(cancellationToken);
         return cliente;
@@ -52,11 +91,40 @@ public class ClienteServices
         ClienteUpdateDto data,
         CancellationToken cancellationToken = default)
     {
-        var cliente = await _context.Clientes.FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+        var cliente = await _context.Clientes
+            .Include(x => x.PessoaFisica).Include(x => x.PessoaJuridica)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw new KeyNotFoundException($"O cliente com o id {id} não foi localizado.");
         cliente.Nome = data.Nome.Trim();
+        if (cliente.Tipo == TipoCliente.Fisica && cliente.Nome.Length > 100)
+        {
+            throw new ValidationException("O nome da pessoa física deve ter no máximo 100 caracteres.");
+        }
         cliente.Endereco = data.Endereco.Trim();
         cliente.Telefone = SomenteDigitos(data.Telefone);
+        cliente.Email = data.Email.Trim();
+        cliente.Celular = SomenteDigitos(data.Celular);
+        cliente.Observacoes = data.Observacoes.Trim();
+        cliente.Situacao = data.Situacao;
+        if (cliente.Tipo == TipoCliente.Fisica)
+        {
+            if (cliente.PessoaFisica is null)
+            {
+                throw new ConflitoNegocioException("O cliente não possui os dados de pessoa física.");
+            }
+            cliente.PessoaFisica.Nome = cliente.Nome;
+            cliente.PessoaFisica.DataNascimento = data.DataNascimento;
+        }
+        else
+        {
+            if (cliente.PessoaJuridica is null)
+            {
+                throw new ConflitoNegocioException("O cliente não possui os dados de pessoa jurídica.");
+            }
+            cliente.PessoaJuridica.RazaoSocial = cliente.Nome;
+            cliente.PessoaJuridica.NomeFantasia = string.IsNullOrWhiteSpace(data.NomeFantasia)
+                ? cliente.Nome : data.NomeFantasia.Trim();
+        }
         await _context.SaveChangesAsync(cancellationToken);
         return cliente;
     }

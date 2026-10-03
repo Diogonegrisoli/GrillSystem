@@ -10,6 +10,10 @@ namespace GrillSystem.Models
         public string Referencia { get; set; } = string.Empty;
         public int MateriaPrimaId { get; set; }
         public MateriaPrima MateriaPrima { get; set; } = null!;
+        public int? OrdemProducaoId { get; set; }
+        public OrdemProducao? OrdemProducao { get; set; }
+        public string Observacoes { get; set; } = string.Empty;
+        public OrigemMovimentacaoEstoque Origem { get; set; } = OrigemMovimentacaoEstoque.AjusteManual;
 
         public MovimentacaoEstoque()
         {
@@ -31,4 +35,6 @@ namespace GrillSystem.Models
         Entrada = 1,
         Saida = 2
     }
+
+    public enum OrigemMovimentacaoEstoque { AjusteManual, Compra, Producao }
 }

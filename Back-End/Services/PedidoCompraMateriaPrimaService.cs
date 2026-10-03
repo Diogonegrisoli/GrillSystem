@@ -97,10 +97,10 @@ public class PedidoCompraMateriaPrimaService
         CancellationToken cancellationToken)
     {
         await ValidarPedidoEditavel(data.PedidoCompraId, cancellationToken);
-        if (!await _context.MateriasPrimas.AnyAsync(x => x.Id == data.MateriaPrimaId, cancellationToken))
+        if (!await _context.MateriasPrimas.AnyAsync(x => x.Id == data.MateriaPrimaId &&
+                x.Situacao == SituacaoCadastro.Ativo, cancellationToken))
         {
-            throw new KeyNotFoundException(
-                $"A matéria-prima com o id {data.MateriaPrimaId} não foi localizada.");
+            throw new RegraNegocioException("A matéria-prima não existe ou está inativa.");
         }
 
         bool duplicado = await _context.PedidosCompraMateriasPrimas.AnyAsync(
@@ -136,8 +136,7 @@ public class PedidoCompraMateriaPrimaService
         await _context.PedidosCompra
             .Where(x => x.Id == pedidoId)
             .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ValorTotal, total), cancellationToken);
-        await _context.ContasPagar
-            .Where(x => x.PedidoCompraId == pedidoId)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Valor, total), cancellationToken);
+        await SincronizacaoFinanceira.AtualizarPagamento(
+            _context, pedidoId, total, cancellationToken);
     }
 }

@@ -18,9 +18,14 @@ namespace GrillSystem.Dto
         [MaxLength(250, ErrorMessage = "O e-mail deve ter no máximo 250 caracteres!")]
         [EmailAddress(ErrorMessage = "E-mail inválido!")]
         public string Email { get; set; } = string.Empty;
-        [Required(ErrorMessage = "O endereço deve ser informado!")]
         [MaxLength(300, ErrorMessage = "O endereço atingiu o número máximo de 300 caracteres!")]
         public string Endereco { get; set; } = string.Empty;
+        [MaxLength(200)]
+        public string Contrato { get; set; } = string.Empty;
+        [MaxLength(15)]
+        public string Celular { get; set; } = string.Empty;
+        [EnumDataType(typeof(GrillSystem.Models.SituacaoCadastro))]
+        public GrillSystem.Models.SituacaoCadastro Situacao { get; set; } = GrillSystem.Models.SituacaoCadastro.Ativo;
     }
 
     public class FornecedorUpdateDto
@@ -35,8 +40,13 @@ namespace GrillSystem.Dto
         [MaxLength(250, ErrorMessage = "O e-mail deve ter no máximo 250 caracteres!")]
         [EmailAddress(ErrorMessage = "E-mail inválido!")]
         public string Email { get; set; } = string.Empty;
-        [Required(ErrorMessage = "O endereço deve ser informado!")]
         [MaxLength(300, ErrorMessage = "O endereço atingiu o número máximo de 300 caracteres!")]
         public string Endereco { get; set; } = string.Empty;
+        [MaxLength(200)]
+        public string Contrato { get; set; } = string.Empty;
+        [MaxLength(15)]
+        public string Celular { get; set; } = string.Empty;
+        [EnumDataType(typeof(GrillSystem.Models.SituacaoCadastro))]
+        public GrillSystem.Models.SituacaoCadastro Situacao { get; set; } = GrillSystem.Models.SituacaoCadastro.Ativo;
     }
 }

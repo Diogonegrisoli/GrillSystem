@@ -40,6 +40,8 @@ public class ProdutoPedidoVendaServices
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == data.ProdutoId, cancellationToken)
             ?? throw new KeyNotFoundException($"O produto com o id {data.ProdutoId} não foi localizado.");
+        if (produto.Situacao != SituacaoCadastro.Ativo)
+            throw new RegraNegocioException("O produto está inativo.");
         await ValidarPedidoEditavel(data.PedidoVendaId, cancellationToken);
         await ValidarDuplicidade(data.PedidoVendaId, data.ProdutoId, null, cancellationToken);
 
@@ -72,6 +74,8 @@ public class ProdutoPedidoVendaServices
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == data.ProdutoId, cancellationToken)
             ?? throw new KeyNotFoundException($"O produto com o id {data.ProdutoId} não foi localizado.");
+        if (produto.Situacao != SituacaoCadastro.Ativo)
+            throw new RegraNegocioException("O produto está inativo.");
 
         await ValidarPedidoEditavel(item.PedidoVendaId, cancellationToken);
         await ValidarPedidoEditavel(data.PedidoVendaId, cancellationToken);
@@ -146,12 +150,20 @@ public class ProdutoPedidoVendaServices
         decimal total = await _context.ProdutosPedidosVenda
             .Where(x => x.PedidoVendaId == pedidoId)
             .SumAsync(x => x.Quantidade * x.PrecoUnitario, cancellationToken);
+        decimal desconto = await _context.PedidosVenda
+            .Where(x => x.Id == pedidoId)
+            .Select(x => x.Desconto)
+            .SingleAsync(cancellationToken);
+        if (desconto > total)
+        {
+            throw new RegraNegocioException("O desconto do pedido não pode superar o valor dos produtos.");
+        }
+        total -= desconto;
 
         await _context.PedidosVenda
             .Where(x => x.Id == pedidoId)
             .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ValorTotal, total), cancellationToken);
-        await _context.ContasReceber
-            .Where(x => x.PedidoVendaId == pedidoId)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Valor, total), cancellationToken);
+        await SincronizacaoFinanceira.AtualizarRecebimento(
+            _context, pedidoId, total, cancellationToken);
     }
 }

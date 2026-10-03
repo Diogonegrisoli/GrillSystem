@@ -12,6 +12,14 @@ namespace GrillSystem.Dto
         [Required(ErrorMessage = "É necessário informar o cliente!")]
         [Range(1, int.MaxValue)]
         public int ClienteId { get; set; }
+        [Range(1, int.MaxValue)]
+        public int? FuncionarioId { get; set; }
+        [EnumDataType(typeof(TipoPagamentoReceber))]
+        public TipoPagamentoReceber? FormaPagamento { get; set; }
+        [Range(0, double.MaxValue)]
+        public decimal Desconto { get; set; }
+        [Range(1, 120)]
+        public int Parcelas { get; set; } = 1;
     }
 
 
@@ -27,5 +35,13 @@ namespace GrillSystem.Dto
         [Required(ErrorMessage = "É necessário informar o cliente!")]
         [Range(1, int.MaxValue)]
         public int ClienteId { get; set; }
+        [Range(1, int.MaxValue)]
+        public int? FuncionarioId { get; set; }
+        [EnumDataType(typeof(TipoPagamentoReceber))]
+        public TipoPagamentoReceber? FormaPagamento { get; set; }
+        [Range(0, double.MaxValue)]
+        public decimal Desconto { get; set; }
+        [Range(1, 120)]
+        public int Parcelas { get; set; } = 1;
     }
 }

@@ -22,7 +22,7 @@ public class ContaReceberServices
             .PaginarAsync(paginacao, cancellationToken);
 
     public async Task<ContaReceber> GetId(int id, CancellationToken cancellationToken = default) =>
-        await _context.ContasReceber.AsNoTracking()
+        await _context.ContasReceber.AsNoTracking().Include(x => x.Parcelas)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
         ?? throw new KeyNotFoundException($"A conta a receber com o id {id} não foi localizada.");
 
@@ -33,6 +33,8 @@ public class ContaReceberServices
         DateOnly emissao = DateOnly.FromDateTime(DateTime.Today);
         TipoPagamentoReceber tipoPagamento = data.TipoPagamento
             ?? throw new ValidationException("O tipo de pagamento deve ser informado.");
+        if (data.DataRecebimento.HasValue)
+            throw new RegraNegocioException("Registre o recebimento da parcela pelo caixa.");
         ValidarDatas(emissao, data.DataVencimento, data.DataRecebimento);
         decimal total = await ObterTotalPedido(data.PedidoVendaId, cancellationToken);
         if (await _context.ContasReceber.AnyAsync(
@@ -49,7 +51,19 @@ public class ContaReceberServices
             status,
             data.DataRecebimento,
             tipoPagamento,
-            data.PedidoVendaId);
+            data.PedidoVendaId)
+        {
+            Observacao = data.Observacao.Trim()
+        };
+        var pedido = await _context.PedidosVenda.AsNoTracking()
+            .SingleAsync(x => x.Id == data.PedidoVendaId, cancellationToken);
+        foreach (var (numero, valor, vencimento) in Parcelamento.Gerar(total, pedido.Parcelas, data.DataVencimento))
+        {
+            conta.Parcelas.Add(new ContaReceberParcelada
+            {
+                NumeroParcela = numero, ValorParcela = valor, DataVencimento = vencimento
+            });
+        }
         _context.ContasReceber.Add(conta);
         await _context.SaveChangesAsync(cancellationToken);
         return conta;
@@ -60,11 +74,18 @@ public class ContaReceberServices
         ContaReceberUpdateDto data,
         CancellationToken cancellationToken = default)
     {
-        var conta = await _context.ContasReceber
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var conta = await _context.ContasReceber.Include(x => x.Parcelas)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw new KeyNotFoundException($"A conta a receber com o id {id} não foi localizada.");
         TipoPagamentoReceber tipoPagamento = data.TipoPagamento
             ?? throw new ValidationException("O tipo de pagamento deve ser informado.");
+        if (data.DataRecebimento.HasValue || conta.StatusPagamento == StatusPagamento.Pago)
+            throw new RegraNegocioException("Recebimentos são registrados pelo caixa.");
+        if (conta.Parcelas.Any(x => x.Situacao != SituacaoParcela.Pendente))
+            throw new RegraNegocioException("Uma conta com parcela liquidada não pode ser alterada.");
+        if (conta.PedidoVendaId != data.PedidoVendaId)
+            throw new RegraNegocioException("A conta não pode ser transferida para outro pedido.");
         ValidarDatas(conta.DataEmissao, data.DataVencimento, data.DataRecebimento);
         if (await _context.ContasReceber.AnyAsync(
                 x => x.PedidoVendaId == data.PedidoVendaId && x.Id != id,
@@ -75,27 +96,53 @@ public class ContaReceberServices
 
         conta.Valor = await ObterTotalPedido(data.PedidoVendaId, cancellationToken);
         conta.DataVencimento = data.DataVencimento;
-        conta.DataRecebimento = data.DataRecebimento;
-        conta.StatusPagamento = data.DataRecebimento.HasValue
-            ? StatusPagamento.Pago
-            : data.DataVencimento < DateOnly.FromDateTime(DateTime.Today)
-                ? StatusPagamento.Atrasado
-                : StatusPagamento.Pendente;
+        conta.DataRecebimento = null;
+        conta.StatusPagamento = data.DataVencimento < DateOnly.FromDateTime(DateTime.Today)
+            ? StatusPagamento.Atrasado : StatusPagamento.Pendente;
         conta.TipoPagamento = tipoPagamento;
-        conta.PedidoVendaId = data.PedidoVendaId;
+        conta.Observacao = data.Observacao.Trim();
+        var pedido = await _context.PedidosVenda.AsNoTracking()
+            .SingleAsync(x => x.Id == data.PedidoVendaId, cancellationToken);
+        var plano = Parcelamento.Gerar(conta.Valor, pedido.Parcelas, data.DataVencimento);
+        if (conta.Parcelas.Count != plano.Count)
+        {
+            _context.ContasReceberParceladas.RemoveRange(conta.Parcelas);
+            conta.Parcelas.Clear();
+            await _context.SaveChangesAsync(cancellationToken);
+            foreach (var (numero, valor, vencimento) in plano)
+            {
+                conta.Parcelas.Add(new ContaReceberParcelada
+                {
+                    NumeroParcela = numero, ValorParcela = valor, DataVencimento = vencimento
+                });
+            }
+        }
+        else
+        {
+            foreach (var parcela in conta.Parcelas)
+            {
+                var novo = plano[parcela.NumeroParcela - 1];
+                parcela.ValorParcela = novo.Valor;
+                parcela.DataVencimento = novo.Vencimento;
+            }
+        }
         await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return conta;
     }
 
     public async Task<ContaReceber> Delete(int id, CancellationToken cancellationToken = default)
     {
-        var conta = await _context.ContasReceber
+        var conta = await _context.ContasReceber.Include(x => x.Parcelas)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw new KeyNotFoundException($"A conta a receber com o id {id} não foi localizada.");
         if (conta.StatusPagamento == StatusPagamento.Pago)
         {
             throw new RegraNegocioException("Uma conta recebida não pode ser excluída.");
         }
+        if (conta.Parcelas.Any(x => x.Situacao != SituacaoParcela.Pendente))
+            throw new RegraNegocioException("A conta possui recebimentos e não pode ser excluída.");
+        _context.ContasReceberParceladas.RemoveRange(conta.Parcelas);
         _context.ContasReceber.Remove(conta);
         await _context.SaveChangesAsync(cancellationToken);
         return conta;

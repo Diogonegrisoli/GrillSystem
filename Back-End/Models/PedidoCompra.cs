@@ -11,6 +11,8 @@ namespace GrillSystem.Models
         public Fornecedor Fornecedor { get; set; } = null!;
         public int FuncionarioId { get; set; }
         public Funcionario Funcionario { get; set; } = null!;
+        public TipoPagamento? FormaPagamento { get; set; }
+        public int Parcelas { get; set; } = 1;
 
         public PedidoCompra() { }
 

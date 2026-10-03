@@ -8,6 +8,8 @@ namespace GrillSystem.Models
         public decimal Quantidade { get; set; }
         public decimal QuantidadeMinima { get; set; }
         public UnidadeMedida UnidadeMedida { get; set; }
+        public SituacaoCadastro Situacao { get; set; } = SituacaoCadastro.Ativo;
+        public string Observacoes { get; set; } = string.Empty;
 
         public MateriaPrima()
         {

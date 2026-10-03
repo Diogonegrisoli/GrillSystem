@@ -22,7 +22,7 @@ public class ContaPagarService
             .PaginarAsync(paginacao, cancellationToken);
 
     public async Task<ContaPagar> GetId(int id, CancellationToken cancellationToken = default) =>
-        await _context.ContasPagar.AsNoTracking()
+        await _context.ContasPagar.AsNoTracking().Include(x => x.Parcelas)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
         ?? throw new KeyNotFoundException($"A conta a pagar com o id {id} não foi localizada.");
 
@@ -33,6 +33,10 @@ public class ContaPagarService
         DateTime emissao = Validacoes.DataEmissao(data.DataEmissao);
         TipoPagamento tipoPagamento = data.TipoPagamento
             ?? throw new ValidationException("O tipo de pagamento deve ser informado.");
+        if (data.DataPagamento.HasValue)
+        {
+            throw new RegraNegocioException("Registre o pagamento da parcela pelo caixa.");
+        }
         Validacoes.PeriodoValido(
             emissao,
             data.DataVencimento,
@@ -53,13 +57,28 @@ public class ContaPagarService
             throw new ConflitoNegocioException("O pedido já possui uma conta a pagar.");
         }
 
+        var pedido = await _context.PedidosCompra.AsNoTracking()
+            .SingleAsync(x => x.Id == data.PedidoCompraId, cancellationToken);
         var conta = new ContaPagar(
             total,
             tipoPagamento,
             emissao,
             data.DataVencimento,
             data.DataPagamento,
-            data.PedidoCompraId);
+            data.PedidoCompraId)
+        {
+            Observacao = data.Observacao.Trim()
+        };
+        foreach (var (numero, valor, vencimento) in Parcelamento.Gerar(
+            total, pedido.Parcelas, DateOnly.FromDateTime(data.DataVencimento)))
+        {
+            conta.Parcelas.Add(new ContaPagarParcelada
+            {
+                NumeroParcela = numero,
+                ValorParcela = valor,
+                DataVencimento = vencimento
+            });
+        }
         _context.ContasPagar.Add(conta);
         await _context.SaveChangesAsync(cancellationToken);
         return conta;
@@ -70,11 +89,24 @@ public class ContaPagarService
         ContaPagarUpdateDto data,
         CancellationToken cancellationToken = default)
     {
-        var conta = await _context.ContasPagar
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var conta = await _context.ContasPagar.Include(x => x.Parcelas)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw new KeyNotFoundException($"A conta a pagar com o id {id} não foi localizada.");
         TipoPagamento tipoPagamento = data.TipoPagamento
             ?? throw new ValidationException("O tipo de pagamento deve ser informado.");
+        if (data.DataPagamento.HasValue || conta.Status == StatusContaPagar.Pago)
+        {
+            throw new RegraNegocioException("Pagamentos são registrados pelo caixa e não podem ser editados diretamente.");
+        }
+        if (conta.Parcelas.Any(x => x.Situacao != SituacaoParcela.Pendente))
+        {
+            throw new RegraNegocioException("Uma conta com parcela liquidada não pode ser alterada.");
+        }
+        if (conta.PedidoCompraId != data.PedidoCompraId)
+        {
+            throw new RegraNegocioException("A conta não pode ser transferida para outro pedido.");
+        }
         Validacoes.PeriodoValido(
             conta.DataEmissao,
             data.DataVencimento,
@@ -95,23 +127,53 @@ public class ContaPagarService
 
         conta.Valor = await ObterTotalPedido(data.PedidoCompraId, cancellationToken);
         conta.TipoPagamento = tipoPagamento;
+        conta.Observacao = data.Observacao.Trim();
         conta.DataVencimento = data.DataVencimento;
-        conta.DataPagamento = data.DataPagamento;
-        conta.PedidoCompraId = data.PedidoCompraId;
-        conta.Status = data.DataPagamento.HasValue ? StatusContaPagar.Pago : StatusContaPagar.Pendente;
+        conta.DataPagamento = null;
+        conta.Status = StatusContaPagar.Pendente;
+        var pedido = await _context.PedidosCompra.AsNoTracking()
+            .SingleAsync(x => x.Id == data.PedidoCompraId, cancellationToken);
+        var plano = Parcelamento.Gerar(
+            conta.Valor, pedido.Parcelas, DateOnly.FromDateTime(data.DataVencimento));
+        if (conta.Parcelas.Count != plano.Count)
+        {
+            _context.ContasPagarParceladas.RemoveRange(conta.Parcelas);
+            conta.Parcelas.Clear();
+            await _context.SaveChangesAsync(cancellationToken);
+            foreach (var (numero, valor, vencimento) in plano)
+            {
+                conta.Parcelas.Add(new ContaPagarParcelada
+                {
+                    NumeroParcela = numero, ValorParcela = valor, DataVencimento = vencimento
+                });
+            }
+        }
+        else
+        {
+            foreach (var parcela in conta.Parcelas)
+            {
+                var novo = plano[parcela.NumeroParcela - 1];
+                parcela.ValorParcela = novo.Valor;
+                parcela.DataVencimento = novo.Vencimento;
+            }
+        }
         await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return conta;
     }
 
     public async Task<ContaPagar> Delete(int id, CancellationToken cancellationToken = default)
     {
-        var conta = await _context.ContasPagar
+        var conta = await _context.ContasPagar.Include(x => x.Parcelas)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw new KeyNotFoundException($"A conta a pagar com o id {id} não foi localizada.");
         if (conta.Status == StatusContaPagar.Pago)
         {
             throw new RegraNegocioException("Uma conta paga não pode ser excluída.");
         }
+        if (conta.Parcelas.Any(x => x.Situacao != SituacaoParcela.Pendente))
+            throw new RegraNegocioException("A conta possui pagamentos e não pode ser excluída.");
+        _context.ContasPagarParceladas.RemoveRange(conta.Parcelas);
         _context.ContasPagar.Remove(conta);
         await _context.SaveChangesAsync(cancellationToken);
         return conta;

@@ -8,6 +8,10 @@ namespace GrillSystem.Models
         public string Cnpj { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Endereco { get; set; } = string.Empty;
+        public string Contrato { get; set; } = string.Empty;
+        public string Celular { get; set; } = string.Empty;
+        public SituacaoCadastro Situacao { get; set; } = SituacaoCadastro.Ativo;
+        public ICollection<Endereco> Enderecos { get; set; } = new List<Endereco>();
 
         public Fornecedor() { }
 

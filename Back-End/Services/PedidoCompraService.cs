@@ -42,7 +42,11 @@ public class PedidoCompraService
             data.DataEntrega,
             0,
             data.FornecedorId,
-            data.FuncionarioId);
+            data.FuncionarioId)
+        {
+            FormaPagamento = data.FormaPagamento,
+            Parcelas = data.Parcelas
+        };
         _context.PedidosCompra.Add(pedido);
         await _context.SaveChangesAsync(cancellationToken);
         return pedido;
@@ -73,10 +77,17 @@ public class PedidoCompraService
             pedido.DataEntrega = data.DataEntrega;
             pedido.FornecedorId = data.FornecedorId;
             pedido.FuncionarioId = data.FuncionarioId;
+            pedido.FormaPagamento = data.FormaPagamento;
+            if (pedido.Parcelas != data.Parcelas && await _context.ContasPagar
+                    .AnyAsync(x => x.PedidoCompraId == id, cancellationToken))
+                throw new RegraNegocioException("A quantidade de parcelas não pode mudar após gerar a conta.");
+            pedido.Parcelas = data.Parcelas;
         }
         else if (pedido.DataPedido != data.DataPedido ||
                  pedido.FornecedorId != data.FornecedorId ||
-                 pedido.FuncionarioId != data.FuncionarioId)
+                 pedido.FuncionarioId != data.FuncionarioId ||
+                 pedido.FormaPagamento != data.FormaPagamento ||
+                 pedido.Parcelas != data.Parcelas)
         {
             throw new RegraNegocioException(
                 "Dados cadastrais do pedido só podem ser alterados enquanto ele estiver pendente.");
@@ -135,9 +146,10 @@ public class PedidoCompraService
         int funcionarioId,
         CancellationToken cancellationToken)
     {
-        if (!await _context.Fornecedores.AnyAsync(x => x.Id == fornecedorId, cancellationToken))
+        if (!await _context.Fornecedores.AnyAsync(x => x.Id == fornecedorId &&
+                x.Situacao == SituacaoCadastro.Ativo, cancellationToken))
         {
-            throw new KeyNotFoundException($"O fornecedor com o id {fornecedorId} não foi localizado.");
+            throw new RegraNegocioException("O fornecedor da compra não existe ou está inativo.");
         }
         if (!await _context.Funcionarios.AnyAsync(
                 x => x.Id == funcionarioId && x.Status == StatusFuncionario.Ativo,
@@ -213,7 +225,10 @@ public class PedidoCompraService
                 item.CustoUnitario,
                 dataEntrega.Value,
                 $"Recebimento do pedido de compra #{pedido.Id}",
-                item.MateriaPrimaId));
+                item.MateriaPrimaId)
+            {
+                Origem = OrigemMovimentacaoEstoque.Compra
+            });
         }
     }
 

@@ -7,6 +7,9 @@ namespace GrillSystem.Models
         public string Descricao { get; set; } = string.Empty;
         public decimal Preco { get; set; }
         public int Quantidade { get; set; }
+        public int EstoqueMinimo { get; set; }
+        public UnidadeMedida UnidadeMedida { get; set; } = UnidadeMedida.Unidade;
+        public SituacaoCadastro Situacao { get; set; } = SituacaoCadastro.Ativo;
 
         public Produto() { }
 

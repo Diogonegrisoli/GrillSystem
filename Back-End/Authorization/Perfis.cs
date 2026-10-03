@@ -18,4 +18,5 @@ public static class Politicas
 {
     public const string GerenciarUsuarios = nameof(GerenciarUsuarios);
     public const string GerenciarSistema = nameof(GerenciarSistema);
+    public const string GerenciarFinanceiro = nameof(GerenciarFinanceiro);
 }

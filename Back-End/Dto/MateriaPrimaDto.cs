@@ -14,5 +14,9 @@ namespace GrillSystem.Dto
         public decimal QuantidadeMinima { get; set; }
         [EnumDataType(typeof(UnidadeMedida))]
         public UnidadeMedida UnidadeMedida { get; set; }
+        [EnumDataType(typeof(SituacaoCadastro))]
+        public SituacaoCadastro Situacao { get; set; } = SituacaoCadastro.Ativo;
+        [MaxLength(1000)]
+        public string Observacoes { get; set; } = string.Empty;
     }
 }

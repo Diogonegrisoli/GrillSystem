@@ -36,12 +36,23 @@ public class PedidoVendaServices
         CancellationToken cancellationToken = default)
     {
         ValidarDatas(data.DataPedido, data.DataEntrega);
-        if (!await _context.Clientes.AnyAsync(x => x.Id == data.ClienteId, cancellationToken))
+        if (!await _context.Clientes.AnyAsync(x => x.Id == data.ClienteId &&
+                x.Situacao == SituacaoCadastro.Ativo, cancellationToken))
         {
-            throw new KeyNotFoundException($"O cliente com o id {data.ClienteId} não foi localizado.");
+            throw new RegraNegocioException("O cliente da venda não existe ou está inativo.");
         }
 
-        var pedido = new PedidoVenda(data.DataPedido, data.DataEntrega, 0, data.ClienteId);
+        if (data.Desconto != 0)
+        {
+            throw new RegraNegocioException("Inclua os produtos antes de aplicar um desconto.");
+        }
+        await ValidarFuncionario(data.FuncionarioId, cancellationToken);
+        var pedido = new PedidoVenda(data.DataPedido, data.DataEntrega, 0, data.ClienteId)
+        {
+            FuncionarioId = data.FuncionarioId,
+            FormaPagamento = data.FormaPagamento,
+            Parcelas = data.Parcelas
+        };
         _context.PedidosVenda.Add(pedido);
         await _context.SaveChangesAsync(cancellationToken);
         return pedido;
@@ -68,17 +79,40 @@ public class PedidoVendaServices
 
         if (pedido.Status == StatusPedido.Pendente)
         {
-            if (!await _context.Clientes.AnyAsync(x => x.Id == data.ClienteId, cancellationToken))
+            if (!await _context.Clientes.AnyAsync(x => x.Id == data.ClienteId &&
+                    x.Situacao == SituacaoCadastro.Ativo, cancellationToken))
             {
-                throw new KeyNotFoundException($"O cliente com o id {data.ClienteId} não foi localizado.");
+                throw new RegraNegocioException("O cliente da venda não existe ou está inativo.");
             }
             pedido.DataPedido = data.DataPedido;
             pedido.DataEntrega = data.DataEntrega;
             pedido.ClienteId = data.ClienteId;
+            await ValidarFuncionario(data.FuncionarioId, cancellationToken);
+            decimal bruto = await _context.ProdutosPedidosVenda
+                .Where(x => x.PedidoVendaId == id)
+                .SumAsync(x => x.Quantidade * x.PrecoUnitario, cancellationToken);
+            if (data.Desconto > bruto)
+            {
+                throw new RegraNegocioException("O desconto não pode superar o valor dos produtos.");
+            }
+            pedido.FuncionarioId = data.FuncionarioId;
+            pedido.FormaPagamento = data.FormaPagamento;
+            if (pedido.Parcelas != data.Parcelas && await _context.ContasReceber
+                    .AnyAsync(x => x.PedidoVendaId == id, cancellationToken))
+                throw new RegraNegocioException("A quantidade de parcelas não pode mudar após gerar a conta.");
+            pedido.Parcelas = data.Parcelas;
+            pedido.Desconto = data.Desconto;
+            pedido.ValorTotal = bruto - data.Desconto;
+            await SincronizacaoFinanceira.AtualizarRecebimento(
+                _context, id, pedido.ValorTotal, cancellationToken);
         }
         else if (pedido.DataPedido != data.DataPedido ||
                  pedido.DataEntrega != data.DataEntrega ||
-                 pedido.ClienteId != data.ClienteId)
+                 pedido.ClienteId != data.ClienteId ||
+                 pedido.FuncionarioId != data.FuncionarioId ||
+                 pedido.FormaPagamento != data.FormaPagamento ||
+                 pedido.Parcelas != data.Parcelas ||
+                 pedido.Desconto != data.Desconto)
         {
             throw new RegraNegocioException(
                 "Dados cadastrais do pedido só podem ser alterados enquanto ele estiver pendente.");
@@ -199,6 +233,16 @@ public class PedidoVendaServices
         {
             throw new RegraNegocioException(
                 "Inclua ao menos um produto antes de enviar o pedido para produção.");
+        }
+    }
+
+    private async Task ValidarFuncionario(int? funcionarioId, CancellationToken cancellationToken)
+    {
+        if (funcionarioId.HasValue && !await _context.Funcionarios.AnyAsync(
+                x => x.Id == funcionarioId.Value && x.Status == StatusFuncionario.Ativo,
+                cancellationToken))
+        {
+            throw new KeyNotFoundException("O funcionário da venda não existe ou está inativo.");
         }
     }
 }

@@ -9,6 +9,11 @@ namespace GrillSystem.Models
         public decimal ValorTotal { get; set; }
         public int ClienteId { get; set; }
         public Cliente Cliente { get; set; } = null!;
+        public int? FuncionarioId { get; set; }
+        public Funcionario? Funcionario { get; set; }
+        public TipoPagamentoReceber? FormaPagamento { get; set; }
+        public decimal Desconto { get; set; }
+        public int Parcelas { get; set; } = 1;
 
         public PedidoVenda() { }
 

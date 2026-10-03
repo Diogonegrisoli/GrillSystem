@@ -28,6 +28,13 @@ namespace GrillSystem.Data
         public DbSet<ContaPagar> ContasPagar => Set<ContaPagar>();
         public DbSet<CategoriaFinanceira> CategoriasFinanceiras => Set<CategoriaFinanceira>();
         public DbSet<Lancamento> Lancamentos => Set<Lancamento>();
+        public DbSet<PessoaFisica> PessoasFisicas => Set<PessoaFisica>();
+        public DbSet<PessoaJuridica> PessoasJuridicas => Set<PessoaJuridica>();
+        public DbSet<Endereco> Enderecos => Set<Endereco>();
+        public DbSet<Caixa> Caixas => Set<Caixa>();
+        public DbSet<MovimentacaoCaixa> MovimentacoesCaixa => Set<MovimentacaoCaixa>();
+        public DbSet<ContaPagarParcelada> ContasPagarParceladas => Set<ContaPagarParcelada>();
+        public DbSet<ContaReceberParcelada> ContasReceberParceladas => Set<ContaReceberParcelada>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -111,6 +118,11 @@ namespace GrillSystem.Data
             builder.Entity<Cliente>(entity =>
             {
                 entity.HasIndex(x => x.CpfCnpj).IsUnique();
+                entity.Property(x => x.Celular).HasMaxLength(15);
+                entity.Property(x => x.Email).HasMaxLength(250);
+                entity.Property(x => x.Observacoes).HasMaxLength(1000);
+                entity.HasMany(x => x.Enderecos).WithMany(x => x.Clientes)
+                    .UsingEntity("ClientesEnderecos");
                 entity.HasMany<PedidoVenda>()
                     .WithOne(x => x.Cliente)
                     .HasForeignKey(x => x.ClienteId)
@@ -119,6 +131,8 @@ namespace GrillSystem.Data
 
             builder.Entity<Funcionario>(entity =>
             {
+                entity.HasMany(x => x.Enderecos).WithMany(x => x.Funcionarios)
+                    .UsingEntity("FuncionariosEnderecos");
                 entity.HasIndex(x => x.Cpf).IsUnique();
                 entity.Property(x => x.Nome).HasMaxLength(100);
                 entity.Property(x => x.Cpf).HasMaxLength(11);
@@ -126,6 +140,10 @@ namespace GrillSystem.Data
 
             builder.Entity<Fornecedor>(entity =>
             {
+                entity.HasMany(x => x.Enderecos).WithMany(x => x.Fornecedores)
+                    .UsingEntity("FornecedoresEnderecos");
+                entity.Property(x => x.Contrato).HasMaxLength(200);
+                entity.Property(x => x.Celular).HasMaxLength(15);
                 entity.HasIndex(x => x.Cnpj).IsUnique();
                 entity.Property(x => x.RazaoSocial).HasMaxLength(150);
                 entity.Property(x => x.NomeFantasia).HasMaxLength(200);
@@ -136,6 +154,7 @@ namespace GrillSystem.Data
 
             builder.Entity<MateriaPrima>(entity =>
             {
+                entity.Property(x => x.Observacoes).HasMaxLength(1000);
                 entity.HasIndex(x => x.Codigo).IsUnique();
                 entity.Property(x => x.Codigo).HasMaxLength(50);
                 entity.Property(x => x.Descricao).HasMaxLength(250);
@@ -194,7 +213,9 @@ namespace GrillSystem.Data
             builder.Entity<PedidoVenda>(entity =>
             {
                 entity.Property(x => x.ValorTotal).HasPrecision(18, 2);
+                entity.Property(x => x.Desconto).HasPrecision(18, 2);
                 entity.HasOne(x => x.Cliente).WithMany().OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(x => x.Funcionario).WithMany().OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Entity<PedidoCompra>(entity =>
@@ -206,6 +227,7 @@ namespace GrillSystem.Data
 
             builder.Entity<ContaReceber>(entity =>
             {
+                entity.Property(x => x.Observacao).HasMaxLength(1000);
                 entity.HasIndex(x => x.PedidoVendaId).IsUnique();
                 entity.Property(x => x.Valor).HasPrecision(18, 2);
                 entity.HasOne(x => x.PedidoVenda).WithMany().OnDelete(DeleteBehavior.Restrict);
@@ -213,6 +235,7 @@ namespace GrillSystem.Data
 
             builder.Entity<ContaPagar>(entity =>
             {
+                entity.Property(x => x.Observacao).HasMaxLength(1000);
                 entity.HasIndex(x => x.PedidoCompraId).IsUnique();
                 entity.Property(x => x.Valor).HasPrecision(18, 2);
                 entity.HasOne(x => x.PedidoCompra).WithMany().OnDelete(DeleteBehavior.Restrict);
@@ -220,6 +243,10 @@ namespace GrillSystem.Data
 
             builder.Entity<MovimentacaoEstoque>(entity =>
             {
+                entity.Property(x => x.Observacoes).HasMaxLength(1000);
+                entity.HasOne(x => x.OrdemProducao).WithMany()
+                    .HasForeignKey(x => x.OrdemProducaoId)
+                    .OnDelete(DeleteBehavior.Restrict);
                 entity.Property(x => x.Quantidade).HasPrecision(18, 3);
                 entity.Property(x => x.CustoUnitario).HasPrecision(18, 2);
                 entity.Property(x => x.Referencia).HasMaxLength(200);
@@ -236,6 +263,69 @@ namespace GrillSystem.Data
 
             builder.Entity<CategoriaFinanceira>(entity =>
                 entity.Property(x => x.Nome).HasMaxLength(100));
+
+            builder.Entity<PessoaFisica>(entity =>
+            {
+                entity.HasIndex(x => x.ClienteId).IsUnique();
+                entity.HasIndex(x => x.Cpf).IsUnique();
+                entity.Property(x => x.Nome).HasMaxLength(100);
+                entity.Property(x => x.Cpf).HasMaxLength(11);
+                entity.HasOne(x => x.Cliente).WithOne(x => x.PessoaFisica)
+                    .HasForeignKey<PessoaFisica>(x => x.ClienteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+            builder.Entity<PessoaJuridica>(entity =>
+            {
+                entity.HasIndex(x => x.ClienteId).IsUnique();
+                entity.HasIndex(x => x.Cnpj).IsUnique();
+                entity.Property(x => x.RazaoSocial).HasMaxLength(150);
+                entity.Property(x => x.NomeFantasia).HasMaxLength(200);
+                entity.Property(x => x.Cnpj).HasMaxLength(14);
+                entity.HasOne(x => x.Cliente).WithOne(x => x.PessoaJuridica)
+                    .HasForeignKey<PessoaJuridica>(x => x.ClienteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+            builder.Entity<Endereco>(entity =>
+            {
+                entity.Property(x => x.Logradouro).HasMaxLength(200);
+                entity.Property(x => x.Numero).HasMaxLength(20);
+                entity.Property(x => x.Bairro).HasMaxLength(100);
+                entity.Property(x => x.Cidade).HasMaxLength(100);
+                entity.Property(x => x.Estado).HasMaxLength(2);
+                entity.Property(x => x.Cep).HasMaxLength(8);
+            });
+            builder.Entity<Caixa>(entity =>
+            {
+                entity.Property(x => x.Descricao).HasMaxLength(200);
+                entity.Property(x => x.SaldoInicial).HasPrecision(18, 2);
+                entity.Property(x => x.SaldoFinal).HasPrecision(18, 2);
+            });
+            builder.Entity<ContaPagarParcelada>(entity =>
+            {
+                entity.HasIndex(x => new { x.ContaPagarId, x.NumeroParcela }).IsUnique();
+                entity.Property(x => x.ValorParcela).HasPrecision(18, 2);
+                entity.HasOne(x => x.ContaPagar).WithMany(x => x.Parcelas)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+            builder.Entity<ContaReceberParcelada>(entity =>
+            {
+                entity.HasIndex(x => new { x.ContaReceberId, x.NumeroParcela }).IsUnique();
+                entity.Property(x => x.ValorParcela).HasPrecision(18, 2);
+                entity.HasOne(x => x.ContaReceber).WithMany(x => x.Parcelas)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+            builder.Entity<MovimentacaoCaixa>(entity =>
+            {
+                entity.Property(x => x.Valor).HasPrecision(18, 2);
+                entity.Property(x => x.Descricao).HasMaxLength(300);
+                entity.HasIndex(x => x.ParcelaPagarId).IsUnique();
+                entity.HasIndex(x => x.ParcelaReceberId).IsUnique();
+                entity.HasOne(x => x.Caixa).WithMany().OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(x => x.ParcelaPagar).WithMany(x => x.Movimentacoes)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(x => x.ParcelaReceber).WithMany(x => x.Movimentacoes)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
         }
     }
 }

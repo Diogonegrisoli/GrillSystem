@@ -16,6 +16,8 @@ namespace GrillSystem.Dto
         [Required(ErrorMessage = "O pedido de compra deve ser informado!")]
         [Range(1, int.MaxValue)]
         public int PedidoCompraId { get; set; }
+        [MaxLength(1000)]
+        public string Observacao { get; set; } = string.Empty;
     }
 
     public class ContaPagarUpdateDto
@@ -29,5 +31,7 @@ namespace GrillSystem.Dto
         [Required(ErrorMessage = "O pedido de compra deve ser informado!")]
         [Range(1, int.MaxValue)]
         public int PedidoCompraId { get; set; }
+        [MaxLength(1000)]
+        public string Observacao { get; set; } = string.Empty;
     }
 }

@@ -34,7 +34,11 @@ public class MateriaPrimaServices
             data.Descricao.Trim(),
             0,
             data.QuantidadeMinima,
-            data.UnidadeMedida);
+            data.UnidadeMedida)
+        {
+            Situacao = data.Situacao,
+            Observacoes = data.Observacoes.Trim()
+        };
         _context.MateriasPrimas.Add(materiaPrima);
         await _context.SaveChangesAsync(cancellationToken);
         return materiaPrima;
@@ -54,6 +58,8 @@ public class MateriaPrimaServices
         materiaPrima.Descricao = data.Descricao.Trim();
         materiaPrima.QuantidadeMinima = data.QuantidadeMinima;
         materiaPrima.UnidadeMedida = data.UnidadeMedida;
+        materiaPrima.Situacao = data.Situacao;
+        materiaPrima.Observacoes = data.Observacoes.Trim();
         await _context.SaveChangesAsync(cancellationToken);
         return materiaPrima;
     }

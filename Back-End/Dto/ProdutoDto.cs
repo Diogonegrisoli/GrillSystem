@@ -13,5 +13,11 @@ namespace GrillSystem.Dto
         [Required(ErrorMessage = "É necessário informar o preço do produto!")]
         [Range(0.01, double.MaxValue, ErrorMessage = "O preço não pode ser negativo!")]
         public decimal Preco { get; set; }
+        [Range(0, int.MaxValue)]
+        public int EstoqueMinimo { get; set; }
+        [EnumDataType(typeof(GrillSystem.Models.UnidadeMedida))]
+        public GrillSystem.Models.UnidadeMedida UnidadeMedida { get; set; } = GrillSystem.Models.UnidadeMedida.Unidade;
+        [EnumDataType(typeof(GrillSystem.Models.SituacaoCadastro))]
+        public GrillSystem.Models.SituacaoCadastro Situacao { get; set; } = GrillSystem.Models.SituacaoCadastro.Ativo;
     }
 }

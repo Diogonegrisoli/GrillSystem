@@ -86,7 +86,11 @@ public class MovimentacaoEstoqueService
             data.CustoUnitario,
             data.Data,
             data.Referencia.Trim(),
-            data.MateriaPrimaId);
+            data.MateriaPrimaId)
+        {
+            Observacoes = data.Observacoes.Trim(),
+            Origem = OrigemMovimentacaoEstoque.AjusteManual
+        };
 
         _context.MovimentacoesEstoque.Add(movimentacao);
         await _context.SaveChangesAsync(cancellationToken);

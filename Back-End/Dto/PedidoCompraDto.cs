@@ -17,6 +17,10 @@ namespace GrillSystem.Dto
         [Required(ErrorMessage = "O funcionário deve ser informado!")]
         [Range(1, int.MaxValue)]
         public int FuncionarioId { get; set; }
+        [EnumDataType(typeof(TipoPagamento))]
+        public TipoPagamento? FormaPagamento { get; set; }
+        [Range(1, 120)]
+        public int Parcelas { get; set; } = 1;
     }
 
     public class PedidoCompraUpdateDto
@@ -37,5 +41,9 @@ namespace GrillSystem.Dto
         [Required(ErrorMessage = "O funcionário deve ser informado!")]
         [Range(1, int.MaxValue)]
         public int FuncionarioId { get; set; }
+        [EnumDataType(typeof(TipoPagamento))]
+        public TipoPagamento? FormaPagamento { get; set; }
+        [Range(1, 120)]
+        public int Parcelas { get; set; } = 1;
     }
 }

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GrillSystem.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260918164130_IdentityEAutorizacao")]
-    partial class IdentityEAutorizacao
+    [Migration("20261003221402_PrimeiraMigration")]
+    partial class PrimeiraMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,6 +25,89 @@ namespace GrillSystem.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("ClientesEnderecos", b =>
+                {
+                    b.Property<int>("ClientesId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EnderecosId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ClientesId", "EnderecosId");
+
+                    b.HasIndex("EnderecosId");
+
+                    b.ToTable("ClientesEnderecos");
+                });
+
+            modelBuilder.Entity("FornecedoresEnderecos", b =>
+                {
+                    b.Property<int>("EnderecosId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FornecedoresId")
+                        .HasColumnType("int");
+
+                    b.HasKey("EnderecosId", "FornecedoresId");
+
+                    b.HasIndex("FornecedoresId");
+
+                    b.ToTable("FornecedoresEnderecos");
+                });
+
+            modelBuilder.Entity("FuncionariosEnderecos", b =>
+                {
+                    b.Property<int>("EnderecosId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FuncionariosId")
+                        .HasColumnType("int");
+
+                    b.HasKey("EnderecosId", "FuncionariosId");
+
+                    b.HasIndex("FuncionariosId");
+
+                    b.ToTable("FuncionariosEnderecos");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.Caixa", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DataAbertura")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DataFechamento")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<decimal>("SaldoFinal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("SaldoInicial")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Situacao")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Caixas");
+                });
+
             modelBuilder.Entity("GrillSystem.Models.CategoriaFinanceira", b =>
                 {
                     b.Property<int>("Id")
@@ -35,7 +118,8 @@ namespace GrillSystem.Migrations
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("Tipo")
                         .HasColumnType("int");
@@ -54,11 +138,24 @@ namespace GrillSystem.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Celular")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("varchar(15)");
+
                     b.Property<string>("CpfCnpj")
                         .IsRequired()
                         .HasMaxLength(14)
                         .HasColumnType("varchar(14)")
                         .HasColumnName("cpf_cnpj");
+
+                    b.Property<DateOnly>("DataCadastro")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
 
                     b.Property<string>("Endereco")
                         .IsRequired()
@@ -68,9 +165,17 @@ namespace GrillSystem.Migrations
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
                         .HasColumnName("nome");
+
+                    b.Property<string>("Observacoes")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<int>("Situacao")
+                        .HasColumnType("int");
 
                     b.Property<string>("Telefone")
                         .IsRequired()
@@ -83,6 +188,9 @@ namespace GrillSystem.Migrations
                         .HasColumnName("tipo");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CpfCnpj")
+                        .IsUnique();
 
                     b.ToTable("cliente");
                 });
@@ -104,6 +212,11 @@ namespace GrillSystem.Migrations
                     b.Property<DateTime>("DataVencimento")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("Observacao")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
                     b.Property<int>("PedidoCompraId")
                         .HasColumnType("int");
 
@@ -114,13 +227,50 @@ namespace GrillSystem.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Valor")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PedidoCompraId");
+                    b.HasIndex("PedidoCompraId")
+                        .IsUnique();
 
                     b.ToTable("ContasPagar");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.ContaPagarParcelada", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContaPagarId")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("DataPagamento")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("DataVencimento")
+                        .HasColumnType("date");
+
+                    b.Property<int>("NumeroParcela")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Situacao")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ValorParcela")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContaPagarId", "NumeroParcela")
+                        .IsUnique();
+
+                    b.ToTable("ContasPagarParceladas");
                 });
 
             modelBuilder.Entity("GrillSystem.Models.ContaReceber", b =>
@@ -140,6 +290,11 @@ namespace GrillSystem.Migrations
                     b.Property<DateOnly>("DataVencimento")
                         .HasColumnType("date");
 
+                    b.Property<string>("Observacao")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
                     b.Property<int>("PedidoVendaId")
                         .HasColumnType("int");
 
@@ -150,13 +305,93 @@ namespace GrillSystem.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Valor")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PedidoVendaId");
+                    b.HasIndex("PedidoVendaId")
+                        .IsUnique();
 
                     b.ToTable("ContasReceber");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.ContaReceberParcelada", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContaReceberId")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("DataRecebimento")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("DataVencimento")
+                        .HasColumnType("date");
+
+                    b.Property<int>("NumeroParcela")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Situacao")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ValorParcela")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContaReceberId", "NumeroParcela")
+                        .IsUnique();
+
+                    b.ToTable("ContasReceberParceladas");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.Endereco", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Bairro")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Cep")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)");
+
+                    b.Property<string>("Cidade")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("varchar(2)");
+
+                    b.Property<string>("Logradouro")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Enderecos");
                 });
 
             modelBuilder.Entity("GrillSystem.Models.Fornecedor", b =>
@@ -167,27 +402,48 @@ namespace GrillSystem.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Celular")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("varchar(15)");
+
                     b.Property<string>("Cnpj")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(14)
+                        .HasColumnType("varchar(14)");
+
+                    b.Property<string>("Contrato")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
 
                     b.Property<string>("Endereco")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
 
                     b.Property<string>("NomeFantasia")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("RazaoSocial")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<int>("Situacao")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Cnpj")
+                        .IsUnique();
 
                     b.ToTable("Fornecedores");
                 });
@@ -208,9 +464,10 @@ namespace GrillSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FornecedorId");
-
                     b.HasIndex("MateriaPrimaId");
+
+                    b.HasIndex("FornecedorId", "MateriaPrimaId")
+                        .IsUnique();
 
                     b.ToTable("FornecedoresMateriaPrima");
                 });
@@ -225,16 +482,21 @@ namespace GrillSystem.Migrations
 
                     b.Property<string>("Cpf")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(11)
+                        .HasColumnType("varchar(11)");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Cpf")
+                        .IsUnique();
 
                     b.ToTable("Funcionarios");
                 });
@@ -255,13 +517,15 @@ namespace GrillSystem.Migrations
 
                     b.Property<string>("Descricao")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
 
                     b.Property<int>("FuncionarioId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Valor")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -282,24 +546,84 @@ namespace GrillSystem.Migrations
 
                     b.Property<string>("Codigo")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
+                    b.Property<string>("Observacoes")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<decimal>("Quantidade")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<decimal>("QuantidadeMinima")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("Situacao")
+                        .HasColumnType("int");
 
                     b.Property<int>("UnidadeMedida")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
                     b.ToTable("MateriasPrimas");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.MovimentacaoCaixa", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CaixaId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DataMovimentacao")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<int?>("ParcelaPagarId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ParcelaReceberId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TipoMovimentacao")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Valor")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaixaId");
+
+                    b.HasIndex("ParcelaPagarId")
+                        .IsUnique();
+
+                    b.HasIndex("ParcelaReceberId")
+                        .IsUnique();
+
+                    b.ToTable("MovimentacoesCaixa");
                 });
 
             modelBuilder.Entity("GrillSystem.Models.MovimentacaoEstoque", b =>
@@ -311,7 +635,8 @@ namespace GrillSystem.Migrations
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("CustoUnitario")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateOnly>("Data")
                         .HasColumnType("date");
@@ -319,12 +644,25 @@ namespace GrillSystem.Migrations
                     b.Property<int>("MateriaPrimaId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Observacoes")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<int?>("OrdemProducaoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Origem")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Quantidade")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<string>("Referencia")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("Tipo")
                         .HasColumnType("int");
@@ -332,6 +670,8 @@ namespace GrillSystem.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MateriaPrimaId");
+
+                    b.HasIndex("OrdemProducaoId");
 
                     b.ToTable("MovimentacoesEstoque");
                 });
@@ -344,7 +684,7 @@ namespace GrillSystem.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateOnly>("DataFim")
+                    b.Property<DateOnly?>("DataFim")
                         .HasColumnType("date");
 
                     b.Property<DateOnly>("DataInicio")
@@ -378,17 +718,24 @@ namespace GrillSystem.Migrations
                     b.Property<DateOnly>("DataPedido")
                         .HasColumnType("date");
 
+                    b.Property<int?>("FormaPagamento")
+                        .HasColumnType("int");
+
                     b.Property<int>("FornecedorId")
                         .HasColumnType("int");
 
                     b.Property<int>("FuncionarioId")
                         .HasColumnType("int");
 
+                    b.Property<int>("Parcelas")
+                        .HasColumnType("int");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<decimal>("ValorTotal")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -407,17 +754,26 @@ namespace GrillSystem.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("CustoUnitario")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("MateriaPrimaId")
                         .HasColumnType("int");
 
                     b.Property<int>("PedidoCompraId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("Quantidade")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("MateriaPrimaId");
 
-                    b.HasIndex("PedidoCompraId");
+                    b.HasIndex("PedidoCompraId", "MateriaPrimaId")
+                        .IsUnique();
 
                     b.ToTable("PedidosCompraMateriasPrimas");
                 });
@@ -439,17 +795,105 @@ namespace GrillSystem.Migrations
                     b.Property<DateOnly>("DataPedido")
                         .HasColumnType("date");
 
+                    b.Property<decimal>("Desconto")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("FormaPagamento")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FuncionarioId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Parcelas")
+                        .HasColumnType("int");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<decimal>("ValorTotal")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId");
 
+                    b.HasIndex("FuncionarioId");
+
                     b.ToTable("PedidosVenda");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.PessoaFisica", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Cpf")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("varchar(11)");
+
+                    b.Property<DateOnly?>("DataNascimento")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId")
+                        .IsUnique();
+
+                    b.HasIndex("Cpf")
+                        .IsUnique();
+
+                    b.ToTable("PessoasFisicas");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.PessoaJuridica", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Cnpj")
+                        .IsRequired()
+                        .HasMaxLength(14)
+                        .HasColumnType("varchar(14)");
+
+                    b.Property<string>("NomeFantasia")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("RazaoSocial")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId")
+                        .IsUnique();
+
+                    b.HasIndex("Cnpj")
+                        .IsUnique();
+
+                    b.ToTable("PessoasJuridicas");
                 });
 
             modelBuilder.Entity("GrillSystem.Models.Produto", b =>
@@ -462,19 +906,34 @@ namespace GrillSystem.Migrations
 
                     b.Property<string>("Codigo")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
+                    b.Property<int>("EstoqueMinimo")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("Preco")
-                        .HasColumnType("decimal(65,30)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Quantidade")
                         .HasColumnType("int");
 
+                    b.Property<int>("Situacao")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnidadeMedida")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
 
                     b.ToTable("Produtos");
                 });
@@ -493,11 +952,16 @@ namespace GrillSystem.Migrations
                     b.Property<int>("ProdutoId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("QuantidadeNecessaria")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("MateriaPrimaId");
 
-                    b.HasIndex("ProdutoId");
+                    b.HasIndex("ProdutoId", "MateriaPrimaId")
+                        .IsUnique();
 
                     b.ToTable("ProdutosMateriasPrimas");
                 });
@@ -518,9 +982,13 @@ namespace GrillSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrdemProducaoId");
+                    b.HasIndex("OrdemProducaoId")
+                        .IsUnique();
 
                     b.HasIndex("ProdutoId");
+
+                    b.HasIndex("OrdemProducaoId", "ProdutoId")
+                        .IsUnique();
 
                     b.ToTable("ProdutosOrdensProducao");
                 });
@@ -536,6 +1004,10 @@ namespace GrillSystem.Migrations
                     b.Property<int>("PedidoVendaId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("PrecoUnitario")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("ProdutoId")
                         .HasColumnType("int");
 
@@ -544,9 +1016,10 @@ namespace GrillSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PedidoVendaId");
-
                     b.HasIndex("ProdutoId");
+
+                    b.HasIndex("PedidoVendaId", "ProdutoId")
+                        .IsUnique();
 
                     b.ToTable("ProdutosPedidosVenda");
                 });
@@ -674,6 +1147,34 @@ namespace GrillSystem.Migrations
                             ConcurrencyStamp = "PERFIL-OPERADOR",
                             Name = "Operador",
                             NormalizedName = "OPERADOR"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            ConcurrencyStamp = "PERFIL-MESTRE-PRODUCAO",
+                            Name = "Mestre de Produção",
+                            NormalizedName = "MESTRE DE PRODUÇÃO"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            ConcurrencyStamp = "PERFIL-FINANCEIRO",
+                            Name = "Financeiro",
+                            NormalizedName = "FINANCEIRO"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            ConcurrencyStamp = "PERFIL-VENDEDOR",
+                            Name = "Vendedor",
+                            NormalizedName = "VENDEDOR"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            ConcurrencyStamp = "PERFIL-COMPRADOR",
+                            Name = "Comprador",
+                            NormalizedName = "COMPRADOR"
                         });
                 });
 
@@ -780,15 +1281,71 @@ namespace GrillSystem.Migrations
                     b.ToTable("UsuariosTokens", (string)null);
                 });
 
+            modelBuilder.Entity("ClientesEnderecos", b =>
+                {
+                    b.HasOne("GrillSystem.Models.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClientesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GrillSystem.Models.Endereco", null)
+                        .WithMany()
+                        .HasForeignKey("EnderecosId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FornecedoresEnderecos", b =>
+                {
+                    b.HasOne("GrillSystem.Models.Endereco", null)
+                        .WithMany()
+                        .HasForeignKey("EnderecosId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GrillSystem.Models.Fornecedor", null)
+                        .WithMany()
+                        .HasForeignKey("FornecedoresId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FuncionariosEnderecos", b =>
+                {
+                    b.HasOne("GrillSystem.Models.Endereco", null)
+                        .WithMany()
+                        .HasForeignKey("EnderecosId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GrillSystem.Models.Funcionario", null)
+                        .WithMany()
+                        .HasForeignKey("FuncionariosId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("GrillSystem.Models.ContaPagar", b =>
                 {
                     b.HasOne("GrillSystem.Models.PedidoCompra", "PedidoCompra")
                         .WithMany()
                         .HasForeignKey("PedidoCompraId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("PedidoCompra");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.ContaPagarParcelada", b =>
+                {
+                    b.HasOne("GrillSystem.Models.ContaPagar", "ContaPagar")
+                        .WithMany("Parcelas")
+                        .HasForeignKey("ContaPagarId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ContaPagar");
                 });
 
             modelBuilder.Entity("GrillSystem.Models.ContaReceber", b =>
@@ -796,10 +1353,21 @@ namespace GrillSystem.Migrations
                     b.HasOne("GrillSystem.Models.PedidoVenda", "PedidoVenda")
                         .WithMany()
                         .HasForeignKey("PedidoVendaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("PedidoVenda");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.ContaReceberParcelada", b =>
+                {
+                    b.HasOne("GrillSystem.Models.ContaReceber", "ContaReceber")
+                        .WithMany("Parcelas")
+                        .HasForeignKey("ContaReceberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ContaReceber");
                 });
 
             modelBuilder.Entity("GrillSystem.Models.FornecedorMateriaPrima", b =>
@@ -807,13 +1375,13 @@ namespace GrillSystem.Migrations
                     b.HasOne("GrillSystem.Models.Fornecedor", "Fornecedor")
                         .WithMany()
                         .HasForeignKey("FornecedorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("GrillSystem.Models.MateriaPrima", "MateriaPrima")
                         .WithMany()
                         .HasForeignKey("MateriaPrimaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Fornecedor");
@@ -826,13 +1394,13 @@ namespace GrillSystem.Migrations
                     b.HasOne("GrillSystem.Models.CategoriaFinanceira", "CategoriaFinanceira")
                         .WithMany()
                         .HasForeignKey("CategoriaFinanceiraId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("GrillSystem.Models.Funcionario", "Funcionario")
                         .WithMany()
                         .HasForeignKey("FuncionarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("CategoriaFinanceira");
@@ -840,15 +1408,47 @@ namespace GrillSystem.Migrations
                     b.Navigation("Funcionario");
                 });
 
+            modelBuilder.Entity("GrillSystem.Models.MovimentacaoCaixa", b =>
+                {
+                    b.HasOne("GrillSystem.Models.Caixa", "Caixa")
+                        .WithMany()
+                        .HasForeignKey("CaixaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GrillSystem.Models.ContaPagarParcelada", "ParcelaPagar")
+                        .WithMany("Movimentacoes")
+                        .HasForeignKey("ParcelaPagarId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("GrillSystem.Models.ContaReceberParcelada", "ParcelaReceber")
+                        .WithMany("Movimentacoes")
+                        .HasForeignKey("ParcelaReceberId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Caixa");
+
+                    b.Navigation("ParcelaPagar");
+
+                    b.Navigation("ParcelaReceber");
+                });
+
             modelBuilder.Entity("GrillSystem.Models.MovimentacaoEstoque", b =>
                 {
                     b.HasOne("GrillSystem.Models.MateriaPrima", "MateriaPrima")
                         .WithMany()
                         .HasForeignKey("MateriaPrimaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("GrillSystem.Models.OrdemProducao", "OrdemProducao")
+                        .WithMany()
+                        .HasForeignKey("OrdemProducaoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("MateriaPrima");
+
+                    b.Navigation("OrdemProducao");
                 });
 
             modelBuilder.Entity("GrillSystem.Models.PedidoCompra", b =>
@@ -856,13 +1456,13 @@ namespace GrillSystem.Migrations
                     b.HasOne("GrillSystem.Models.Fornecedor", "Fornecedor")
                         .WithMany()
                         .HasForeignKey("FornecedorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("GrillSystem.Models.Funcionario", "Funcionario")
                         .WithMany()
                         .HasForeignKey("FuncionarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Fornecedor");
@@ -875,13 +1475,13 @@ namespace GrillSystem.Migrations
                     b.HasOne("GrillSystem.Models.MateriaPrima", "MateriaPrima")
                         .WithMany()
                         .HasForeignKey("MateriaPrimaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("GrillSystem.Models.PedidoCompra", "PedidoCompra")
                         .WithMany()
                         .HasForeignKey("PedidoCompraId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("MateriaPrima");
@@ -894,6 +1494,35 @@ namespace GrillSystem.Migrations
                     b.HasOne("GrillSystem.Models.Cliente", "Cliente")
                         .WithMany()
                         .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GrillSystem.Models.Funcionario", "Funcionario")
+                        .WithMany()
+                        .HasForeignKey("FuncionarioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Cliente");
+
+                    b.Navigation("Funcionario");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.PessoaFisica", b =>
+                {
+                    b.HasOne("GrillSystem.Models.Cliente", "Cliente")
+                        .WithOne("PessoaFisica")
+                        .HasForeignKey("GrillSystem.Models.PessoaFisica", "ClienteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cliente");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.PessoaJuridica", b =>
+                {
+                    b.HasOne("GrillSystem.Models.Cliente", "Cliente")
+                        .WithOne("PessoaJuridica")
+                        .HasForeignKey("GrillSystem.Models.PessoaJuridica", "ClienteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -905,13 +1534,13 @@ namespace GrillSystem.Migrations
                     b.HasOne("GrillSystem.Models.MateriaPrima", "MateriaPrima")
                         .WithMany()
                         .HasForeignKey("MateriaPrimaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("GrillSystem.Models.Produto", "Produto")
                         .WithMany()
                         .HasForeignKey("ProdutoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("MateriaPrima");
@@ -924,13 +1553,13 @@ namespace GrillSystem.Migrations
                     b.HasOne("GrillSystem.Models.OrdemProducao", "OrdemProducao")
                         .WithMany()
                         .HasForeignKey("OrdemProducaoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("GrillSystem.Models.Produto", "Produto")
                         .WithMany()
                         .HasForeignKey("ProdutoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("OrdemProducao");
@@ -943,13 +1572,13 @@ namespace GrillSystem.Migrations
                     b.HasOne("GrillSystem.Models.PedidoVenda", "PedidoVenda")
                         .WithMany()
                         .HasForeignKey("PedidoVendaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("GrillSystem.Models.Produto", "Produto")
                         .WithMany()
                         .HasForeignKey("ProdutoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("PedidoVenda");
@@ -1017,6 +1646,33 @@ namespace GrillSystem.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.Cliente", b =>
+                {
+                    b.Navigation("PessoaFisica");
+
+                    b.Navigation("PessoaJuridica");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.ContaPagar", b =>
+                {
+                    b.Navigation("Parcelas");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.ContaPagarParcelada", b =>
+                {
+                    b.Navigation("Movimentacoes");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.ContaReceber", b =>
+                {
+                    b.Navigation("Parcelas");
+                });
+
+            modelBuilder.Entity("GrillSystem.Models.ContaReceberParcelada", b =>
+                {
+                    b.Navigation("Movimentacoes");
                 });
 #pragma warning restore 612, 618
         }

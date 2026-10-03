@@ -17,6 +17,8 @@ namespace GrillSystem.Dto
         [Required(ErrorMessage = "Deve ser informado uma referência!")]
         [MaxLength(200)]
         public string Referencia { get; set; } = string.Empty;
+        [MaxLength(1000)]
+        public string Observacoes { get; set; } = string.Empty;
         [Required(ErrorMessage = "A matéria-prima deve ser informada!")]
         [Range(1, int.MaxValue)]
         public int MateriaPrimaId { get; set; }

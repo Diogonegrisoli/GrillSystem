@@ -38,7 +38,12 @@ public class FornecedorService
             data.NomeFantasia.Trim(),
             cnpj,
             data.Email.Trim(),
-            data.Endereco.Trim());
+            data.Endereco.Trim())
+        {
+            Contrato = data.Contrato.Trim(),
+            Celular = data.Celular.Trim(),
+            Situacao = data.Situacao
+        };
         _context.Fornecedores.Add(fornecedor);
         await _context.SaveChangesAsync(cancellationToken);
         return fornecedor;
@@ -56,6 +61,9 @@ public class FornecedorService
         fornecedor.NomeFantasia = data.NomeFantasia.Trim();
         fornecedor.Email = data.Email.Trim();
         fornecedor.Endereco = data.Endereco.Trim();
+        fornecedor.Contrato = data.Contrato.Trim();
+        fornecedor.Celular = data.Celular.Trim();
+        fornecedor.Situacao = data.Situacao;
         await _context.SaveChangesAsync(cancellationToken);
         return fornecedor;
     }

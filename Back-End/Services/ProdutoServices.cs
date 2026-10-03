@@ -27,7 +27,12 @@ public class ProdutoServices
     {
         string codigo = data.Codigo.Trim();
         await ValidarCodigo(codigo, null, cancellationToken);
-        var produto = new Produto(codigo, data.Descricao.Trim(), data.Preco, 0);
+        var produto = new Produto(codigo, data.Descricao.Trim(), data.Preco, 0)
+        {
+            EstoqueMinimo = data.EstoqueMinimo,
+            UnidadeMedida = data.UnidadeMedida,
+            Situacao = data.Situacao
+        };
         _context.Produtos.Add(produto);
         await _context.SaveChangesAsync(cancellationToken);
         return produto;
@@ -45,6 +50,9 @@ public class ProdutoServices
         produto.Codigo = codigo;
         produto.Descricao = data.Descricao.Trim();
         produto.Preco = data.Preco;
+        produto.EstoqueMinimo = data.EstoqueMinimo;
+        produto.UnidadeMedida = data.UnidadeMedida;
+        produto.Situacao = data.Situacao;
         await _context.SaveChangesAsync(cancellationToken);
         return produto;
     }

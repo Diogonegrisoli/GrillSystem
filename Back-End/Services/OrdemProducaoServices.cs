@@ -152,7 +152,8 @@ public class OrdemProducaoServices
         {
             decimal consumo = item.QuantidadeNecessaria * ordem.Quantidade;
             int atualizados = await _context.MateriasPrimas
-                .Where(x => x.Id == item.MateriaPrimaId && x.Quantidade >= consumo)
+                .Where(x => x.Id == item.MateriaPrimaId && x.Situacao == SituacaoCadastro.Ativo
+                    && x.Quantidade >= consumo)
                 .ExecuteUpdateAsync(
                     setters => setters.SetProperty(
                         x => x.Quantidade,
@@ -170,7 +171,11 @@ public class OrdemProducaoServices
                 0,
                 dataFinalizacao,
                 $"Consumo da ordem de produção #{ordem.Id}",
-                item.MateriaPrimaId));
+                item.MateriaPrimaId)
+            {
+                Origem = OrigemMovimentacaoEstoque.Producao,
+                OrdemProducaoId = ordem.Id
+            });
         }
 
         int produtoAtualizado = await _context.Produtos

@@ -111,6 +111,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole(Perfis.Administrador));
     options.AddPolicy(Politicas.GerenciarSistema, policy =>
         policy.RequireRole(Perfis.Administrador, Perfis.Gerente));
+    options.AddPolicy(Politicas.GerenciarFinanceiro, policy =>
+        policy.RequireRole(Perfis.Administrador, Perfis.Gerente, Perfis.Financeiro));
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
@@ -167,6 +169,8 @@ builder.Services.AddScoped<ProdutoPedidoVendaServices>();
 builder.Services.AddScoped<ProdutoServices>();
 builder.Services.AddScoped<UsuarioServices>();
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<EnderecoService>();
+builder.Services.AddScoped<CaixaService>();
 
 var app = builder.Build();
 

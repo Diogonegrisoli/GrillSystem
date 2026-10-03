@@ -23,6 +23,8 @@ namespace GrillSystem.Models
         public StatusPagamento StatusPagamento { get; set; }
         public int PedidoVendaId { get; set; }
         public PedidoVenda PedidoVenda { get; set; } = null!;
+        public string Observacao { get; set; } = string.Empty;
+        public ICollection<ContaReceberParcelada> Parcelas { get; set; } = new List<ContaReceberParcelada>();
 
         public ContaReceber() { }
         public ContaReceber(decimal valor, DateOnly dataVencimento, StatusPagamento statusPagamento, DateOnly? dataRecebimento, TipoPagamentoReceber tipoPagamento, int pedidoVendaId)
